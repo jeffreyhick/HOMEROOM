@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #EDF0F4;
+  --surface-sunk: #E4E8EE;
+  --shadow-light: #FFFFFF;
+  --shadow-dark: rgba(163, 177, 198, 0.6);
+
+  --text-primary: #1D2530;
+  --text-secondary: #5B6472;
+  --accent: #3D5A80;
+
+  --status-red: #D64545;
+  --status-amber: #E09A2F;
+  --status-green: #3E9B6B;
+
+  --r-sm: 14px;
+  --r-lg: 20px;
+
+  --t-title: 22px;
+  --t-row: 15px;
+  --t-meta: 13px;
+
+  --ease: ease-out;
+  --raised: -6px -6px 14px var(--shadow-light), 6px 6px 14px var(--shadow-dark);
+  --raised-sm: -3px -3px 7px var(--shadow-light), 3px 3px 7px var(--shadow-dark);
+  --raised-lift: -8px -8px 18px var(--shadow-light), 8px 8px 18px var(--shadow-dark);
+  --inset: inset -4px -4px 9px var(--shadow-light), inset 4px 4px 9px var(--shadow-dark);
+  --inset-sm: inset -2px -2px 5px var(--shadow-light), inset 2px 2px 5px var(--shadow-dark);
+}
+
+body {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: var(--t-row);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

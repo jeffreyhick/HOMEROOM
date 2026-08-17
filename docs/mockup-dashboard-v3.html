@@ -1,0 +1,2387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>homeroom — dashboard mockup (v3: identity, countdowns, celebration, hero dials)</title>
+
+<style>
+/* ============================================================
+   TOKENS  (design.md §tokens — defined once, used everywhere)
+   ============================================================ */
+:root{
+  --surface:#EDF0F4;
+  --surface-sunk:#E4E8EE;
+  --shadow-light:#FFFFFF;
+  --shadow-dark:rgba(163,177,198,0.6);
+
+  --text-primary:#1D2530;
+  --text-secondary:#5B6472;
+  --accent:#3D5A80;
+
+  --status-red:#D64545;
+  --status-amber:#E09A2F;
+  --status-green:#3E9B6B;
+
+  --r-sm:14px;
+  --r-lg:20px;
+
+  --t-title:22px;
+  --t-row:15px;
+  --t-meta:13px;
+
+  --raised:-6px -6px 14px var(--shadow-light), 6px 6px 14px var(--shadow-dark);
+  --raised-sm:-3px -3px 7px var(--shadow-light), 3px 3px 7px var(--shadow-dark);
+  --raised-lift:-8px -8px 18px var(--shadow-light), 8px 8px 18px var(--shadow-dark);
+  --inset:inset -4px -4px 9px var(--shadow-light), inset 4px 4px 9px var(--shadow-dark);
+  --inset-sm:inset -2px -2px 5px var(--shadow-light), inset 2px 2px 5px var(--shadow-dark);
+
+  --ease:cubic-bezier(.22,.68,.36,1);
+  color-scheme:light;
+}
+
+*{ box-sizing:border-box; }
+html{ background:var(--surface); }
+body{
+  margin:0;
+  background:var(--surface);
+  color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;
+  font-size:var(--t-row);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+button,input,textarea,select{ font:inherit; color:inherit; font-variant-numeric:tabular-nums; }
+button{ background:none; border:0; padding:0; cursor:pointer; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:4px; }
+.num{ font-variant-numeric:tabular-nums; }
+
+/* ============================================================
+   TOPBAR — 56px. Wordmark / sync + gear. Nothing else.
+   ============================================================ */
+.topbar{
+  height:56px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  max-width:720px; margin:0 auto; padding:0 20px;
+}
+.topbar[hidden]{ display:none; }
+.wordmark{ font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-primary); }
+.topbar-right{ display:flex; align-items:center; gap:14px; }
+.sync{ font-size:var(--t-meta); color:var(--text-secondary); }
+.sync.is-failed{ color:var(--status-amber); }
+.gear{
+  width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+  box-shadow:var(--raised-sm); color:var(--text-secondary);
+  transition:box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.gear:hover{ color:var(--accent); }
+.gear:active{ box-shadow:var(--inset-sm); }
+.gear svg{ width:17px; height:17px; display:block; }
+
+/* ============================================================
+   PAGE + ZONES
+   ============================================================ */
+.page{ max-width:720px; margin:0 auto; padding:8px 20px 72px; }
+.page[hidden]{ display:none; }
+.zones{ display:flex; flex-direction:column; gap:20px; }
+
+/* 1. status line */
+/* v3 — status BAR: full-width, colour-coded, NOT a card. Spans the same width
+   as the panels below; carries date, this-week load, behind count, next exam. */
+.statusbar{
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px;
+  padding:2px 4px; margin:0; font-size:var(--t-row);
+}
+.sb-date{ font-weight:700; color:var(--text-primary); letter-spacing:-0.01em; }
+.sb-sep{ width:4px; height:4px; border-radius:50%; background:var(--shadow-dark); flex:none; }
+.sb-item{ display:inline-flex; align-items:center; gap:7px; color:var(--text-secondary); }
+.sb-ico{ display:inline-grid; place-items:center; color:currentColor; }
+.sb-ico svg{ width:15px; height:15px; display:block; }
+.sb-num{ font-weight:700; }
+.sb-deadlines{ color:var(--accent); }
+.sb-behind-bad{ color:var(--status-red); font-weight:600; }
+.sb-behind-ok{ color:var(--status-green); font-weight:600; }
+.sb-exam .sb-exam-name{ color:var(--text-primary); font-weight:600; }
+.sb-exam .sb-exam-when{ font-weight:700; }
+.sb-exam-when.soon{ color:var(--status-amber); }
+.sb-exam-when.now{ color:var(--status-red); }
+
+/* panels — large and few */
+.panel{
+  background:var(--surface); border-radius:var(--r-lg);
+  box-shadow:var(--raised); padding:20px 22px;
+}
+.panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.panel-title{ font-size:var(--t-title); font-weight:600; letter-spacing:-0.015em; margin:0; text-wrap:balance; }
+.panel-hint{ font-size:var(--t-meta); color:var(--text-secondary); }
+.panel-clickable{ cursor:pointer; transition:box-shadow 160ms var(--ease); }
+.panel-clickable:hover{ box-shadow:var(--raised-lift); }
+
+/* rows — for reading. zero buttons. */
+.rows{ display:flex; flex-direction:column; margin:8px -10px -6px; }
+.row{
+  display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  padding:11px 10px; min-height:44px; border-radius:var(--r-sm);
+  transition:box-shadow 150ms var(--ease);
+}
+.row:hover{ box-shadow:var(--inset-sm); }
+.row-main{ flex:1; min-width:0; display:flex; align-items:baseline; gap:4px 8px; flex-wrap:wrap; }
+.row-text{ font-size:var(--t-row); font-weight:500; color:var(--text-primary); }
+.row-kicker{
+  font-size:var(--t-meta); font-weight:600; color:var(--text-secondary);
+  letter-spacing:.03em;
+}
+.row-course{
+  font-size:var(--t-meta); color:var(--text-secondary); font-weight:600;
+  letter-spacing:.04em; flex:none; width:132px;
+}
+.row-meta{ font-size:var(--t-meta); color:var(--text-secondary); flex:none; text-align:right; }
+.row-meta.is-urgent{ color:var(--text-primary); font-weight:600; }
+
+.dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+.dot-red{ background:var(--status-red); }
+.dot-amber{ background:var(--status-amber); }
+.dot-green{ background:var(--status-green); }
+.dot-none{ background:transparent; }
+
+.tag-overdue{
+  font-size:10px; font-weight:700; letter-spacing:.09em; color:var(--status-red);
+  border:1px solid rgba(214,69,69,.4); border-radius:5px; padding:1px 5px; flex:none;
+}
+.empty{ font-size:var(--t-row); color:var(--text-secondary); padding:12px 0 2px; margin:0; }
+
+/* 4. commitments — desktop card grid */
+/* 2 per row inside the 720px column; 3 only if the column ever widens */
+.grid{ display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); margin-top:14px; }
+.ccard{
+  background:var(--surface); border-radius:var(--r-sm); box-shadow:var(--raised-sm);
+  padding:14px; text-align:left; display:flex; flex-direction:column; gap:9px; min-height:86px;
+  transition:box-shadow 160ms var(--ease), transform 160ms var(--ease);
+}
+.ccard:hover{ box-shadow:var(--raised); transform:translateY(-1px); }
+.ccard:active{ box-shadow:var(--inset-sm); transform:none; }
+.ccard-top{ display:flex; align-items:center; gap:8px; }
+.ccard-name{ font-size:var(--t-row); font-weight:500; line-height:1.3; text-wrap:balance; }
+.ccard-foot{
+  margin-top:auto; display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+  font-size:var(--t-meta); color:var(--text-secondary);
+}
+
+/* 5 + 6. quiet single lines */
+.qline{
+  display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  padding:13px 22px; min-height:46px; border-radius:var(--r-lg);
+  box-shadow:var(--raised-sm); font-size:var(--t-row); color:var(--text-secondary);
+  transition:box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.qline:hover{ box-shadow:var(--raised); color:var(--text-primary); }
+.qline strong{ color:var(--text-primary); font-weight:600; }
+.qline .chev{ color:var(--accent); font-size:var(--t-meta); }
+
+.chips{ display:flex; flex-wrap:wrap; gap:9px; padding:10px 22px 2px; }
+.chips[hidden]{ display:none; }
+.chip{
+  display:inline-flex; align-items:center; gap:7px; padding:8px 13px; min-height:38px;
+  border-radius:999px; box-shadow:var(--raised-sm); font-size:var(--t-meta);
+  color:var(--text-primary); transition:box-shadow 150ms var(--ease);
+}
+.chip:hover{ box-shadow:var(--raised); }
+.chip .num{ color:var(--text-secondary); }
+
+/* ============================================================
+   OVERLAY — expand-in-place morph / phone bottom sheet
+   ============================================================ */
+.backdrop{
+  position:fixed; inset:0; z-index:40; background:rgba(29,37,48,0.18);
+  opacity:0; transition:opacity 200ms var(--ease);
+}
+.backdrop[hidden]{ display:none; }
+.backdrop.is-on{ opacity:1; }
+
+.overlay{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  padding:24px; pointer-events:none;
+}
+.overlay[hidden]{ display:none; }
+
+.xpanel{
+  pointer-events:auto; position:relative; width:100%; max-width:880px; max-height:85vh;
+  overflow-y:auto; overscroll-behavior:contain;
+  background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--raised-lift);
+  padding:26px 30px 24px; transform-origin:top left;
+}
+.xpanel-inner{ transition:opacity 140ms var(--ease); }
+.xclose{
+  position:absolute; top:16px; right:18px; width:36px; height:36px; border-radius:50%;
+  display:grid; place-items:center; box-shadow:var(--raised-sm); color:var(--text-secondary);
+  transition:box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.xclose:hover{ color:var(--text-primary); }
+.xclose:active{ box-shadow:var(--inset-sm); }
+
+.xhead{ padding-right:44px; }
+.xtitle{ font-size:var(--t-title); font-weight:600; letter-spacing:-0.015em; margin:0; text-wrap:balance; }
+.xsub{ font-size:var(--t-meta); color:var(--text-secondary); margin-top:6px; display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px; }
+.xmeta{ font-size:var(--t-meta); color:var(--text-secondary); margin-top:14px; display:flex; flex-wrap:wrap; gap:4px 16px; }
+.pill{
+  display:inline-block; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 9px; border-radius:999px; box-shadow:var(--inset-sm); color:var(--text-secondary);
+}
+.pill.is-red{ color:var(--status-red); }
+.pill.is-amber{ color:var(--status-amber); }
+.pill.is-green{ color:var(--status-green); }
+
+.xsection{ margin-top:24px; }
+.xlabel{
+  font-size:11px; font-weight:700; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--text-secondary); margin-bottom:11px;
+}
+.xtext{ font-size:var(--t-row); margin:0; max-width:62ch; }
+
+/* progress groove — derived only, no manual control anywhere */
+.groove-wrap{ display:flex; align-items:center; gap:12px; }
+.groove{
+  flex:1; height:10px; border-radius:999px; background:var(--surface-sunk);
+  box-shadow:var(--inset-sm); overflow:hidden;
+}
+.groove-fill{ height:100%; border-radius:999px; opacity:.62; transition:width 220ms var(--ease), background-color 220ms var(--ease); }
+.groove-label{ font-size:var(--t-meta); color:var(--text-secondary); font-weight:600; flex:none; }
+
+.field{
+  width:100%; border:0; resize:vertical; min-height:78px; background:var(--surface);
+  border-radius:var(--r-sm); box-shadow:var(--inset); padding:13px 15px;
+  font-size:var(--t-row); line-height:1.5; color:var(--text-primary);
+}
+.field::placeholder{ color:var(--text-secondary); opacity:.9; }
+.field:focus{ outline:none; box-shadow:var(--inset), 0 0 0 2px rgba(61,90,128,.35); }
+
+/* subtasks */
+.checks{ display:flex; flex-direction:column; gap:2px; margin:0 -8px; }
+.check{ display:flex; align-items:center; gap:12px; padding:9px 8px; min-height:44px; border-radius:var(--r-sm); transition:box-shadow 150ms var(--ease); }
+.check:hover{ box-shadow:var(--inset-sm); }
+.check-box{
+  width:24px; height:24px; flex:none; border-radius:8px; box-shadow:var(--raised-sm);
+  display:grid; place-items:center; color:transparent;
+  transition:box-shadow 160ms var(--ease), color 160ms var(--ease);
+}
+.check-box svg{ width:13px; height:13px; }
+.check.is-done .check-box{ box-shadow:var(--inset-sm); color:var(--status-green); }
+.check-title{ flex:1; text-align:left; font-size:var(--t-row); }
+.check.is-done .check-title{ text-decoration:line-through; color:var(--text-secondary); }
+.check-del{
+  width:28px; height:28px; flex:none; border-radius:50%; display:grid; place-items:center;
+  color:var(--text-secondary); opacity:0; transition:opacity 150ms var(--ease), box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.check:hover .check-del, .check-del:focus-visible{ opacity:1; }
+.check-del:hover{ box-shadow:var(--inset-sm); color:var(--status-red); }
+
+.addrow{ display:flex; gap:10px; margin-top:10px; }
+.addrow input{
+  flex:1; border:0; background:var(--surface); border-radius:var(--r-sm);
+  box-shadow:var(--inset-sm); padding:11px 14px; min-height:44px; font-size:var(--t-row);
+}
+.addrow input::placeholder{ color:var(--text-secondary); }
+.addrow input:focus{ outline:none; box-shadow:var(--inset-sm), 0 0 0 2px rgba(61,90,128,.35); }
+
+/* append-only log */
+.logs{ display:flex; flex-direction:column; }
+.log{ display:flex; gap:14px; font-size:var(--t-meta); padding:5px 0; }
+.log-when{ color:var(--text-secondary); flex:none; width:74px; }
+.log-note{ color:var(--text-primary); }
+
+/* actions — exist only inside a detail view */
+.actions{
+  display:flex; flex-wrap:wrap; gap:11px; align-items:center;
+  margin-top:26px; padding-top:20px; border-top:1px solid rgba(163,177,198,.28);
+}
+.btn{
+  border-radius:var(--r-sm); padding:11px 18px; min-height:44px; box-shadow:var(--raised-sm);
+  font-size:var(--t-row); font-weight:500; color:var(--text-secondary);
+  transition:box-shadow 150ms var(--ease), color 150ms var(--ease), transform 150ms var(--ease);
+}
+.btn:hover{ color:var(--text-primary); box-shadow:var(--raised); }
+.btn:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+.btn-hero{ color:var(--accent); font-weight:600; }
+.btn-hero:hover{ color:var(--accent); }
+.btn-danger:hover{ color:var(--status-red); }
+.btn.is-confirming{ color:var(--status-red); font-weight:600; box-shadow:var(--inset-sm); }
+.spacer{ flex:1; }
+
+/* This Week day groups */
+.daygroup + .daygroup{ margin-top:20px; }
+.dayhead{
+  font-size:11px; font-weight:700; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--text-secondary);
+}
+.dayhead.is-overdue{ color:var(--status-red); }
+.xfoot{ margin-top:24px; font-size:var(--t-meta); color:var(--text-secondary); }
+
+/* ============================================================
+   STUDY (Phase 5)
+   ============================================================ */
+.study-grid{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+.study-card{ border-radius:var(--r-sm); box-shadow:var(--raised-sm); padding:16px; display:flex; flex-direction:column; gap:12px; }
+.study-name{ font-size:var(--t-row); font-weight:600; }
+.study-name span{ display:block; font-size:var(--t-meta); font-weight:400; color:var(--text-secondary); margin-top:2px; }
+.dial{ width:100%; max-width:186px; margin:0 auto; display:block; }
+.needle{ transition:transform 300ms var(--ease); transform-origin:80px 80px; }
+.arc-val{ transition:stroke-dasharray 300ms var(--ease), stroke 300ms var(--ease); }
+.dial-label{ text-align:center; font-size:var(--t-row); font-weight:600; margin-top:-8px; }
+.dial-label span{ color:var(--text-secondary); font-weight:400; }
+.study-nogoal{ font-size:var(--t-meta); color:var(--text-secondary); padding:6px 0; }
+.quicklog{ display:flex; flex-wrap:wrap; gap:8px; }
+.qbtn{
+  border-radius:10px; padding:8px 12px; min-height:40px; box-shadow:var(--raised-sm);
+  font-size:var(--t-meta); font-weight:600; color:var(--accent);
+  transition:box-shadow 140ms var(--ease), transform 140ms var(--ease);
+}
+.qbtn:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+.qmins{
+  width:72px; border:0; background:var(--surface); border-radius:10px; box-shadow:var(--inset-sm);
+  padding:8px 10px; min-height:40px; font-size:var(--t-meta); text-align:center;
+}
+.qmins:focus{ outline:none; box-shadow:var(--inset-sm), 0 0 0 2px rgba(61,90,128,.35); }
+.study-meta{ display:flex; align-items:center; gap:8px; font-size:var(--t-meta); color:var(--text-secondary); flex-wrap:wrap; }
+.study-goal{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.stepper{ display:inline-flex; align-items:center; gap:2px; box-shadow:var(--inset-sm); border-radius:999px; padding:2px; }
+.stepper button{ width:26px; height:26px; border-radius:50%; color:var(--text-secondary); font-weight:600; }
+.stepper button:hover{ color:var(--accent); }
+.stepper span{ min-width:16px; text-align:center; font-weight:600; color:var(--text-primary); }
+.goal-input{
+  width:54px; border:0; background:var(--surface); border-radius:8px; box-shadow:var(--inset-sm);
+  padding:5px 6px; text-align:center; font-size:var(--t-meta);
+}
+.goal-input:focus{ outline:none; box-shadow:var(--inset-sm), 0 0 0 2px rgba(61,90,128,.35); }
+
+/* ============================================================
+   SETTINGS + LOGIN
+   ============================================================ */
+.set-list{ display:flex; flex-direction:column; gap:22px; margin-top:20px; }
+.set-item{ display:flex; flex-direction:column; gap:7px; }
+.set-label{ font-size:var(--t-row); font-weight:500; }
+.set-help{ font-size:var(--t-meta); color:var(--text-secondary); margin:0; }
+.set-input,.set-select{
+  border:0; background:var(--surface); border-radius:var(--r-sm); box-shadow:var(--inset-sm);
+  padding:12px 14px; min-height:44px; font-size:var(--t-row); width:100%;
+}
+.set-input:focus,.set-select:focus{ outline:none; box-shadow:var(--inset-sm), 0 0 0 2px rgba(61,90,128,.35); }
+.set-row{ display:flex; gap:12px; align-items:center; }
+.set-ok{ font-size:var(--t-meta); color:var(--status-green); font-weight:600; flex:none; }
+
+.login-wrap{ min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.login-wrap[hidden]{ display:none; }
+.login-panel{
+  width:100%; max-width:380px; background:var(--surface); border-radius:var(--r-lg);
+  box-shadow:var(--raised); padding:38px 34px 30px; display:flex; flex-direction:column; gap:16px;
+}
+.login-mark{ font-size:var(--t-title); font-weight:500; letter-spacing:-0.02em; margin-bottom:4px; }
+.login-msg{ font-size:var(--t-row); color:var(--text-secondary); margin:0; }
+.login-note{ font-size:var(--t-meta); color:var(--text-secondary); text-align:center; margin:6px 0 0; }
+.login-note button{ color:var(--accent); font-weight:600; }
+.btn-block{ text-align:center; }
+
+/* toast */
+.toast{
+  position:fixed; z-index:60; left:50%; bottom:26px; transform:translate(-50%,14px);
+  display:flex; align-items:center; gap:16px; background:var(--surface);
+  border-radius:var(--r-sm); box-shadow:var(--raised); padding:12px 16px;
+  font-size:var(--t-meta); opacity:0; pointer-events:none; max-width:calc(100vw - 32px);
+  transition:opacity 180ms var(--ease), transform 180ms var(--ease);
+}
+.toast.is-on{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+.toast button{ color:var(--accent); font-weight:600; flex:none; }
+.toast button[hidden]{ display:none; }
+
+/* ============================================================
+   PHONE — same column; commitments become chips; sheet from bottom
+   ============================================================ */
+@media (max-width:767px){
+  .page{ padding:6px 14px 64px; }
+  .topbar{ padding:0 14px; }
+  .panel{ padding:18px 16px; }
+  .qline{ padding:13px 16px; }
+  .chips{ padding:10px 16px 2px; }
+  /* Deadlines rows wrap instead of holding a fixed course column */
+  .row{ flex-wrap:wrap; row-gap:2px; }
+  .row-course{ width:auto; }
+  .row-main{ flex:1 1 130px; }
+  .row-meta{ margin-left:auto; }
+
+  .grid{ display:flex; flex-wrap:wrap; gap:9px; }
+  .ccard{
+    min-height:38px; padding:8px 13px; border-radius:999px; flex-direction:row;
+    align-items:center; gap:8px; box-shadow:var(--raised-sm);
+  }
+  .ccard-name{ font-size:var(--t-meta); }
+  .ccard-foot{ margin:0; gap:6px; }
+  .ccard:hover{ transform:none; }
+
+  .overlay{ align-items:flex-end; padding:0; }
+  .xpanel{
+    max-width:none; max-height:88dvh; border-radius:var(--r-lg) var(--r-lg) 0 0;
+    padding:22px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+  .study-grid{ grid-template-columns:1fr; }
+  .actions .btn{ flex:1 1 auto; text-align:center; }
+}
+@media (min-width:768px){ .ccard-sep{ display:none; } }
+
+/* ============================================================
+   v3 — CLASS IDENTITY (colour + icon)
+   Identity is a bounded glyph, never a row tint. Status stays
+   red/amber/green; class colours avoid those hues on purpose.
+   ============================================================ */
+.tag{
+  position:relative;
+  width:30px; height:30px; flex:none; border-radius:9px;
+  display:grid; place-items:center;
+  box-shadow:var(--raised-sm);
+  color:var(--tag-color, var(--text-secondary));
+}
+.tag svg{ width:16px; height:16px; display:block; }
+.tag-sm{ width:24px; height:24px; border-radius:7px; }
+.tag-sm svg{ width:13px; height:13px; }
+/* a hairline in the class colour so identity survives at a glance */
+.tag::after{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--tag-color) 40%, transparent);
+  pointer-events:none;
+}
+
+/* ============================================================
+   v3 — COUNTDOWN (urgency by weight + colour, right of a row)
+   ============================================================ */
+.count{ font-size:var(--t-meta); font-weight:600; color:var(--text-secondary); white-space:nowrap; text-align:right; }
+.count-soon{ color:var(--status-amber); }
+.count-now{ color:var(--status-red); }
+.count-loud{ font-weight:800; letter-spacing:.02em; text-transform:uppercase; }
+.count-sub{ display:block; font-size:11px; font-weight:400; color:var(--text-secondary); text-transform:none; letter-spacing:0; }
+
+/* ============================================================
+   v3 — HERO DIAL STRIP (top of dashboard; the fun visual)
+   ============================================================ */
+.hero{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.hero-panel{
+  position:relative; background:var(--surface); border-radius:var(--r-lg);
+  box-shadow:var(--raised); padding:18px 20px 16px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition:box-shadow 160ms var(--ease);
+}
+.hero-panel:hover{ box-shadow:var(--raised-lift); }
+.hero-cap{
+  display:flex; align-items:center; gap:6px; align-self:stretch;
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-secondary);
+}
+.hero-cap .chev{ margin-left:auto; color:var(--accent); font-size:var(--t-meta); }
+
+.cumdial-wrap{ position:relative; width:100%; max-width:220px; margin:2px auto 0; }
+.cumdial{ width:100%; display:block; }
+.cumseg{ transition:stroke-dasharray 500ms var(--ease), stroke-dashoffset 500ms var(--ease); }
+.cumdial-center{
+  position:absolute; left:0; right:0; bottom:6px; text-align:center;
+  font-size:26px; font-weight:700; color:var(--text-primary); line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.cumdial-center span{ font-size:15px; font-weight:400; color:var(--text-secondary); }
+.cumdial-legend{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:4px 12px;
+  margin-top:4px; font-size:11px; color:var(--text-secondary);
+}
+.legdot{ display:inline-flex; align-items:center; gap:5px; }
+.legdot i{ width:8px; height:8px; border-radius:2px; display:inline-block; }
+
+.hero-flip{ display:flex; flex-direction:column; align-items:center; gap:10px; justify-content:center; flex:1; }
+.hero-flip .flaps{ padding:6px 0 0; }
+.hero-flip .flap{ width:50px; height:70px; font-size:44px; }
+.hero-replay{
+  display:inline-flex; align-items:center; gap:7px; align-self:center;
+  border-radius:999px; box-shadow:var(--raised-sm); padding:7px 14px 7px 12px;
+  font-size:var(--t-meta); font-weight:600; color:var(--accent);
+  transition:box-shadow 140ms var(--ease), transform 140ms var(--ease);
+}
+.hero-replay:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+.hero-replay svg{ width:14px; height:14px; }
+
+/* ============================================================
+   v3 — SPLIT-FLAP BOARD (hero + Wins screen share this)
+   ============================================================ */
+.flap-head{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+.flap-play{
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:999px; box-shadow:var(--raised-sm); padding:9px 16px 9px 14px; min-height:42px;
+  font-size:var(--t-meta); font-weight:600; color:var(--accent);
+  transition:box-shadow 140ms var(--ease), transform 140ms var(--ease);
+}
+.flap-play:active{ box-shadow:var(--inset-sm); transform:translateY(1px); }
+.flap-play svg{ width:15px; height:15px; }
+
+.flaps{ display:flex; gap:8px; justify-content:center; padding:14px 0 6px; }
+.flap{
+  position:relative; width:58px; height:80px; border-radius:10px;
+  background:linear-gradient(#20293A,#171E2B);
+  box-shadow:var(--raised), inset 0 0 0 1px rgba(0,0,0,.35);
+  font-size:52px; font-weight:700; color:#EDF0F4;
+  font-variant-numeric:tabular-nums; overflow:hidden;
+  display:grid; place-items:center;
+}
+/* the seam across the middle of a real split-flap unit */
+.flap::after{
+  content:""; position:absolute; left:0; right:0; top:50%; height:2px;
+  background:rgba(0,0,0,.55); box-shadow:0 1px 0 rgba(255,255,255,.04); z-index:3;
+}
+.flap-digit{ line-height:1; transform:translateY(-1px); }
+.flap.is-flipping .flap-digit{ animation:flapflip 120ms var(--ease); }
+@keyframes flapflip{
+  0%{ transform:translateY(-1px) scaleY(1); }
+  45%{ transform:translateY(-1px) scaleY(0.06); filter:brightness(1.5); }
+  55%{ transform:translateY(-1px) scaleY(0.06); }
+  100%{ transform:translateY(-1px) scaleY(1); }
+}
+.flap-caption{ text-align:center; font-size:var(--t-meta); color:var(--text-secondary); margin-top:6px; }
+.wins-grid{ display:grid; gap:16px; grid-template-columns:1fr; margin-top:8px; }
+.wins-future{
+  border-radius:var(--r-sm); box-shadow:var(--inset-sm); padding:18px;
+  text-align:center; font-size:var(--t-meta); color:var(--text-secondary);
+}
+
+/* ============================================================
+   v3 — LEFT-OFF CARD (session continuity, top of dash)
+   ============================================================ */
+.leftoff{
+  border-radius:var(--r-lg); box-shadow:var(--inset); background:var(--surface);
+  padding:15px 18px; display:flex; gap:13px; align-items:flex-start; cursor:text;
+  transition:box-shadow 150ms var(--ease);
+}
+.leftoff:hover{ box-shadow:var(--inset), 0 0 0 2px rgba(61,90,128,.14); }
+.leftoff-mark{ color:var(--accent); flex:none; margin-top:1px; }
+.leftoff-mark svg{ width:17px; height:17px; display:block; }
+.leftoff-body{ flex:1; min-width:0; }
+.leftoff-label{
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-secondary); margin-bottom:3px;
+}
+.leftoff-text{ font-size:var(--t-row); color:var(--text-primary); line-height:1.45; }
+.leftoff-text.is-empty{ color:var(--text-secondary); font-style:italic; }
+.leftoff-when{ font-size:var(--t-meta); color:var(--text-secondary); margin-top:4px; }
+.leftoff-edit{
+  width:100%; border:0; resize:vertical; min-height:52px; background:var(--surface);
+  border-radius:var(--r-sm); box-shadow:var(--inset-sm); padding:10px 12px;
+  font-size:var(--t-row); line-height:1.45; color:var(--text-primary);
+}
+.leftoff-edit:focus{ outline:none; box-shadow:var(--inset-sm), 0 0 0 2px rgba(61,90,128,.35); }
+
+/* ============================================================
+   v3 — GYM STRIP (the one sanctioned habit)
+   ============================================================ */
+.gym{
+  border-radius:var(--r-lg); box-shadow:var(--raised); background:var(--surface);
+  padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.gym-head{ display:flex; align-items:center; gap:11px; flex:none; }
+.gym-title{ font-size:var(--t-row); font-weight:600; }
+.gym-sub{ font-size:var(--t-meta); color:var(--text-secondary); }
+.gym-week{ display:flex; gap:8px; margin-left:auto; }
+.pip{
+  width:38px; border:0; background:var(--surface); border-radius:11px;
+  box-shadow:var(--raised-sm); padding:7px 0; display:flex; flex-direction:column;
+  align-items:center; gap:3px; color:var(--text-secondary);
+  transition:box-shadow 150ms var(--ease), color 150ms var(--ease), transform 150ms var(--ease);
+}
+.pip-day{ font-size:10px; font-weight:700; letter-spacing:.04em; }
+.pip-mark{ width:15px; height:15px; display:grid; place-items:center; }
+.pip-mark svg{ width:14px; height:14px; }
+.pip-off{ opacity:.4; box-shadow:none; cursor:default; }          /* not a target day */
+.pip-target{ color:var(--text-secondary); }                       /* target, not yet done */
+.pip-today{ box-shadow:var(--raised-sm), 0 0 0 2px rgba(61,90,128,.3); }
+.pip-done{ box-shadow:var(--inset-sm); color:var(--status-green); }
+.pip-missed{ color:var(--status-red); }
+.pip:not(.pip-off):active{ transform:translateY(1px); }
+
+/* ============================================================
+   v3 — CELEBRATION on task/commitment completion
+   ============================================================ */
+.check-box.pop{ animation:checkpop 240ms var(--ease); }
+@keyframes checkpop{
+  0%{ transform:scale(1); }
+  35%{ transform:scale(.82); }
+  70%{ transform:scale(1.14); }
+  100%{ transform:scale(1); }
+}
+.burst{ position:fixed; z-index:70; pointer-events:none; width:0; height:0; }
+.spark{
+  position:absolute; width:7px; height:7px; border-radius:2px;
+  left:-3.5px; top:-3.5px; opacity:0;
+  animation:spark 620ms var(--ease) forwards;
+}
+@keyframes spark{
+  0%{ opacity:1; transform:translate(0,0) scale(1) rotate(0deg); }
+  100%{ opacity:0; transform:translate(var(--dx),var(--dy)) scale(.4) rotate(var(--rot)); }
+}
+/* full-panel ring when a commitment reaches 100% */
+.finale{
+  position:absolute; inset:0; z-index:6; pointer-events:none; border-radius:inherit;
+  animation:finale 900ms var(--ease) forwards;
+}
+@keyframes finale{
+  0%{ box-shadow:inset 0 0 0 3px rgba(62,155,107,0); }
+  25%{ box-shadow:inset 0 0 0 3px rgba(62,155,107,.55); }
+  100%{ box-shadow:inset 0 0 0 3px rgba(62,155,107,0); }
+}
+.finale-banner{
+  position:absolute; left:50%; top:26px; transform:translateX(-50%) translateY(-6px);
+  z-index:8; pointer-events:none; opacity:0;
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 16px; border-radius:999px; box-shadow:var(--raised);
+  background:var(--surface); font-size:var(--t-meta); font-weight:700; color:var(--status-green);
+  animation:banner 1500ms var(--ease) forwards;
+}
+@keyframes banner{
+  0%{ opacity:0; transform:translateX(-50%) translateY(-6px); }
+  14%{ opacity:1; transform:translateX(-50%) translateY(0); }
+  80%{ opacity:1; transform:translateX(-50%) translateY(0); }
+  100%{ opacity:0; transform:translateX(-50%) translateY(-6px); }
+}
+
+/* ============================================================
+   v3 — DEADLINES window selector (segmented, expanded view)
+   ============================================================ */
+.segmented{
+  display:inline-flex; gap:3px; padding:3px; border-radius:999px;
+  box-shadow:var(--inset-sm); margin-top:14px; flex-wrap:wrap;
+}
+.seg{
+  border-radius:999px; padding:7px 13px; min-height:36px;
+  font-size:var(--t-meta); font-weight:600; color:var(--text-secondary);
+  transition:box-shadow 140ms var(--ease), color 140ms var(--ease);
+}
+.seg.is-on{ box-shadow:var(--raised-sm); color:var(--accent); }
+
+/* Fixed body so changing the window never resizes the panel — it holds the
+   height of the largest window; fewer items just leave calm whitespace. */
+.dl-body{ min-height:672px; }
+.tag-exam{
+  font-size:10px; font-weight:700; letter-spacing:.09em; color:var(--accent);
+  border:1px solid rgba(61,90,128,.45); border-radius:5px; padding:1px 5px; flex:none;
+}
+
+@media (max-width:767px){
+  .gym-week{ margin-left:0; width:100%; justify-content:space-between; }
+  .pip{ flex:1; }
+  .flap{ width:48px; height:66px; font-size:42px; }
+  .hero{ grid-template-columns:1fr; }        /* stack the two dials on phone */
+  .hero-flip .flap{ width:46px; height:64px; font-size:40px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{ transition-duration:1ms !important; animation-duration:1ms !important; }
+  .flap.is-flipping .flap-digit, .spark, .finale, .finale-banner, .check-box.pop{ animation:none; }
+  .spark{ opacity:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== TOPBAR ===================== -->
+<header class="topbar" id="topbar">
+  <button class="wordmark" data-nav="dash">homeroom</button>
+  <div class="topbar-right">
+    <span class="sync" id="sync">synced 12m ago</span>
+    <button class="gear" data-nav="settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ===================== DASHBOARD ===================== -->
+<main class="page" id="page-dash">
+  <div class="zones">
+
+    <div class="statusbar" id="statusline"></div>
+
+    <!-- v3: hero dial strip (cumulative study dial + win counter) -->
+    <div class="hero">
+      <div class="hero-panel" id="hero-study" role="button" tabindex="0"
+           aria-label="Study this week. Open the per-course dials.">
+        <div class="hero-cap"><span>Study this week</span><span class="chev">›</span></div>
+        <div class="cumdial-wrap" id="cumdial"></div>
+        <div class="cumdial-legend" id="cumdial-legend"></div>
+      </div>
+      <div class="hero-panel" id="hero-wins" role="button" tabindex="0"
+           aria-label="Wins this semester. Open the wins board.">
+        <div class="hero-cap"><span>Done this semester</span><span class="chev">›</span></div>
+        <div class="hero-flip">
+          <div class="flaps" id="hero-flaps"></div>
+          <button class="hero-replay" id="hero-replay" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Replay
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- v3: left-off card -->
+    <div class="leftoff" id="leftoff" role="button" tabindex="0" aria-label="Where you left off. Click to edit.">
+      <span class="leftoff-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/></svg>
+      </span>
+      <div class="leftoff-body" id="leftoff-body"></div>
+    </div>
+
+    <section class="panel" aria-labelledby="na-title">
+      <div class="panel-head"><h2 class="panel-title" id="na-title">Needs attention</h2></div>
+      <div class="rows" id="na-rows"></div>
+    </section>
+
+    <section class="panel panel-clickable" id="deadlines-panel" role="button" tabindex="0"
+             aria-label="Deadlines, next 7 days. Open this week.">
+      <div class="panel-head">
+        <h2 class="panel-title">Deadlines</h2>
+        <span class="panel-hint">next 7 days</span>
+      </div>
+      <div class="rows" id="dl-rows"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="cm-title">
+      <div class="panel-head"><h2 class="panel-title" id="cm-title">Commitments</h2></div>
+      <div class="grid" id="cm-grid"></div>
+    </section>
+
+    <!-- v3: gym habit strip -->
+    <div class="gym" id="gym"></div>
+
+    <div>
+      <button class="qline" id="stalled-line" aria-expanded="false"></button>
+      <div class="chips" id="stalled-chips" hidden></div>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== SETTINGS ===================== -->
+<main class="page" id="page-settings" hidden>
+  <section class="panel">
+    <div class="panel-head"><h2 class="panel-title">Settings</h2></div>
+    <div class="set-list">
+
+      <div class="set-item">
+        <label class="set-label" for="s-email">Notify email</label>
+        <input class="set-input" id="s-email" type="email" value="jeffrey@colorado.edu">
+      </div>
+
+      <div class="set-item">
+        <label class="set-label" for="s-hour">Digest hour</label>
+        <p class="set-help">When the daily digest arrives. America/Denver.</p>
+        <select class="set-select" id="s-hour">
+          <option>6:00 AM</option><option selected>7:00 AM</option>
+          <option>8:00 AM</option><option>9:00 PM</option>
+        </select>
+      </div>
+
+      <div class="set-item">
+        <label class="set-label" for="s-stale">Stale threshold</label>
+        <p class="set-help">An assignment untouched this long, with a deadline inside a week, goes in the digest.</p>
+        <select class="set-select" id="s-stale">
+          <option>3 days</option><option selected>4 days</option>
+          <option>5 days</option><option>7 days</option>
+        </select>
+      </div>
+
+      <div class="set-item">
+        <span class="set-label">Gym days</span>
+        <p class="set-help">The one habit Homeroom tracks. The digest nudges you on these days; tap a day on the dashboard when you go.</p>
+        <div class="set-row" id="s-gym-days" style="gap:8px;flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="set-item">
+        <label class="set-label" for="s-canvas">Canvas feed URL</label>
+        <p class="set-help">Stored server-side and never shown again. Paste a new URL to replace it.</p>
+        <div class="set-row">
+          <input class="set-input" id="s-canvas" type="password" placeholder="Paste feed URL to replace">
+          <span class="set-ok">set&nbsp;✓</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-hero" data-toast="Settings saved">Save</button>
+        <span class="spacer"></span>
+        <button class="btn" data-nav="login">Sign out</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== LOGIN ===================== -->
+<div class="login-wrap" id="page-login" hidden>
+  <div class="login-panel" id="login-panel"></div>
+</div>
+
+<!-- ===================== OVERLAY + TOAST ===================== -->
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-label="Detail"></div>
+<div class="toast" id="toast"><span id="toast-msg"></span><button id="toast-undo" type="button">Undo</button></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   DEMO DATA — Tuesday, Sep 15. Content continuous with v1.
+   Shapes follow schema.md: importance 1–3, category in
+   (technical|career|personal|school), status in
+   (active|stalled|done|archived), cadence_days, minutes for study.
+   ============================================================ */
+var TODAY = "Tuesday, Sep 15";
+var STALE_DAYS = 4;          // settings.stale_deadline_days
+
+var assignments = [
+  { id:"a1", course:"Statics", title:"HW 2 — Equilibrium problems",
+    day:"Overdue", time:"was 11:59 PM", due:"due yesterday", hours:-14,
+    status:"upcoming", touchedDays:6, thisWeek:true,
+    detail:"Problems 4.12 through 4.30. The truss ones want method of sections, not joints — the whole point of the set." },
+  { id:"a2", course:"ECEN 2250", title:"HW 3 — Node analysis",
+    day:"Tomorrow", time:"11:59 PM", due:"due tomorrow 11:59 PM", hours:30,
+    status:"upcoming", touchedDays:1, thisWeek:true,
+    detail:"Six circuits, node-voltage on all of them. Supernodes on 3 and 5. Submit as one PDF on Canvas." },
+  { id:"a9", course:"Oceanography", title:"Discussion post — coastal upwelling",
+    day:"Today", time:"11:59 PM", due:"due today 11:59 PM", hours:9,
+    status:"upcoming", touchedDays:0, thisWeek:true,
+    detail:"200 words plus one reply to a classmate. Counts for participation, not much else — just don't skip it." },
+  { id:"a3", course:"Thermodynamics", title:"Lab report 1",
+    day:"Friday", time:"5:00 PM", due:"due in 3d · untouched", hours:75,
+    status:"upcoming", touchedDays:9, thisWeek:true,
+    detail:"Ideal gas law verification. Needs the error analysis section — that is the part everyone loses points on. Group data is in the shared folder." },
+  { id:"a4", course:"Oceanography", title:"Reading quiz 4",
+    day:"Monday", time:"9:00 AM", due:"Mon · 9:00 AM", hours:161,
+    status:"upcoming", touchedDays:0, thisWeek:false,
+    detail:"Chapter 7, thermohaline circulation. Ten questions, one attempt, opens Sunday morning." },
+  { id:"a5", course:"Statics", title:"HW 3 — Rigid body equilibrium",
+    day:"Monday", time:"11:59 PM", due:"Mon · 11:59 PM", hours:176,
+    status:"upcoming", touchedDays:0, thisWeek:false,
+    detail:"Posted early. Chapter 5 in full, plus the two starred problems." },
+  { id:"a6", course:"ECEN 2250", title:"Prelab 4 — Thevenin equivalents",
+    day:"Monday", time:"11:59 PM", due:"Mon · 11:59 PM", hours:176,
+    status:"upcoming", touchedDays:0, thisWeek:false,
+    detail:"Hand calculations before lab. No simulation required, but it helps." },
+  { id:"a7", course:"ECEN 2250", title:"HW 2 — Resistive networks",
+    day:"done", time:"", due:"last Wed", hours:-160, status:"done", touchedDays:7, thisWeek:true,
+    detail:"Submitted Wednesday. Graded 47/50." },
+  { id:"a8", course:"Statics", title:"Quiz 2",
+    day:"done", time:"", due:"last Thu", hours:-140, status:"done", touchedDays:6, thisWeek:true,
+    detail:"In-class quiz. Nothing to submit." },
+  { id:"e1", course:"Thermodynamics", title:"Midterm 1", exam:true,
+    day:"Thursday", time:"9:00 AM", due:"next Thu 9:00 AM", hours:200,
+    status:"upcoming", touchedDays:2, thisWeek:false,
+    detail:"Chapters 1–4: first and second law, entropy, cycles. Duane G1B30, one handwritten formula sheet allowed. Counts for 20% of the grade." }
+];
+
+var commitments = [
+  { id:"c1", name:"Space Grant", category:"career", importance:3, cadence:4,
+    color:"#6B4FA0", icon:"satellite", status:"active", days:2,
+    context:"Weekly hours on the payload team. The deliverable that actually matters this month is the interface control document — everything else is meetings.",
+    subs:[
+      { t:"Read last year's ICD", done:true },
+      { t:"Draft the mechanical interface section", done:true },
+      { t:"Get dimensions from the structures lead", done:false },
+      { t:"Review with Dr. Palmer", done:false }
+    ],
+    logs:[ {d:2,note:"Drafted the mechanical section"}, {d:5,note:"Team meeting, took the ICD action item"},
+           {d:9,note:"Read last year's ICD end to end"}, {d:13,note:"Onboarded to the payload team"} ] },
+
+  { id:"c2", name:"Rocket sim", category:"technical", importance:2, cadence:5,
+    color:"#8E4585", icon:"rocket", status:"active", days:9,
+    context:"Six-DOF trajectory model for the L2 cert flight. Thrust curve is fit and the mass model is close. What is actually blocking it is the wind profile — ground data is useless above 2 km.",
+    subs:[
+      { t:"Fit thrust curve from the static test", done:true },
+      { t:"Mass model with propellant burn", done:true },
+      { t:"Pull a real wind profile (Denver sounding)", done:false },
+      { t:"Drag coefficient vs Mach", done:false },
+      { t:"Monte Carlo the dispersion", done:false },
+      { t:"Write the flight card", done:false }
+    ],
+    logs:[ {d:9,note:"Mass model matches the spreadsheet within 2%"}, {d:13,note:"Static test fired, curve digitized"},
+           {d:16,note:"Integrator working"}, {d:21,note:"Picked RK4 after the Euler drift got silly"} ] },
+
+  { id:"c3", name:"Email professors", category:"career", importance:1, cadence:5,
+    color:"#8A6D3B", icon:"mail", status:"active", days:6,
+    context:"Research positions for spring. Three sent, two replies, one meeting to schedule.",
+    subs:[
+      { t:"Dr. Palmer — sent", done:true },
+      { t:"Dr. Whitaker — sent, replied", done:true },
+      { t:"Dr. Osei — sent", done:true },
+      { t:"Schedule the Whitaker meeting", done:false },
+      { t:"Follow up with Osei if quiet by Friday", done:false }
+    ],
+    logs:[ {d:6,note:"Whitaker replied, wants to meet"}, {d:15,note:"Sent all three"} ] },
+
+  { id:"c4", name:"Internship apps", category:"career", importance:2, cadence:7,
+    color:"#5B7085", icon:"briefcase", status:"active", days:3,
+    context:"",
+    subs:[
+      { t:"Résumé down to one page", done:true },
+      { t:"Ball Aerospace — submitted", done:true },
+      { t:"Lockheed — submitted", done:true },
+      { t:"Blue Origin — needs a cover letter", done:false },
+      { t:"Sierra Space", done:false }
+    ],
+    logs:[ {d:3,note:"Lockheed submitted"}, {d:8,note:"Ball submitted"},
+           {d:12,note:"Résumé cut to one page"}, {d:20,note:"Made the target list"} ] },
+
+  /* gym is no longer a commitment in v3 — it is the dedicated habit strip.
+     A stalled personal project keeps the stalled feature demoable. */
+  { id:"c5", name:"Learn Rust", category:"technical", importance:1, cadence:4,
+    color:"#B5642E", icon:"code", status:"stalled", days:23,
+    context:"The sim is Python and it is slow; Rust is the plausible rewrite. Stalled since the semester started — resume or archive.",
+    subs:[ { t:"Book ch. 1–4", done:true }, { t:"Ownership actually clicking", done:false },
+           { t:"Port the integrator as an exercise", done:false } ],
+    logs:[ {d:23,note:"Through chapter 4"}, {d:30,note:"Installed the toolchain"} ] }
+];
+
+/* v3 — icon library. Hand-authored inline SVG, NEVER emoji. Each entry is the
+   inner markup of a 24×24 currentColor icon; class/commitment picks one by key. */
+var ICONS = {
+  zap:'<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+  triangle:'<path d="M12 3l9 17H3z"/><path d="M12 10v5"/>',
+  flame:'<path d="M12 3c3 3.5 5 6 5 9a5 5 0 0 1-10 0c0-1.7.8-3 2-4 .3 1.6 1.2 2.2 2 2.2-1-2.4-.5-5 1-7.2z"/>',
+  wave:'<path d="M2 9c2.5-2.6 4.5-2.6 6 0s3.5 2.6 6 0 4.5-2.6 6 0"/><path d="M2 15c2.5-2.6 4.5-2.6 6 0s3.5 2.6 6 0 4.5-2.6 6 0"/>',
+  rocket:'<path d="M12 3c3 1.8 4.5 5 4.5 8.5L15 16H9l-1.5-4.5C7.5 8 9 4.8 12 3z"/><path d="M9 16l-2.5 3M15 16l2.5 3"/><circle cx="12" cy="9.5" r="1.6"/>',
+  satellite:'<rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 9 5.5 5.5M15 15l3.5 3.5"/><path d="M4 8l4 4M16 12l4 4"/><path d="M15 6a3 3 0 0 1 3 3"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+  briefcase:'<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>',
+  code:'<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 6l-2 12"/>',
+  book:'<path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M18 16H7a2 2 0 0 0-2 2"/>',
+  flask:'<path d="M9 3h6M10 3v6l-4.5 8a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9V3"/><path d="M7.5 15h9"/>',
+  dumbbell:'<path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/>',
+  trophy:'<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 13v4M9 20h6M10 17h4"/>',
+  grad:'<path d="M3 8l9-4 9 4-9 4z"/><path d="M7 10.5V15c0 1.1 2.2 2.5 5 2.5s5-1.4 5-2.5v-4.5"/><path d="M21 8v5"/>'
+};
+
+/* v3 — course identity. code → {color, icon}. Matches assignments.course.
+   In the real app these are columns on `courses`, not a hard-coded map. */
+var COURSE_META = {
+  "ECEN 2250":      { color:"#4257B2", icon:"zap" },
+  "Statics":        { color:"#B5642E", icon:"triangle" },
+  "Thermodynamics": { color:"#2C8C7C", icon:"flame" },
+  "Oceanography":   { color:"#2E6E9E", icon:"wave" }
+};
+
+/* v3 — session continuity ("left off"). One global note. */
+var leftOff = {
+  note:"Rocket sim: mass model verified against the spreadsheet. Next: pull the Denver sounding for the wind profile — that's the real blocker before dispersion.",
+  d:0   // days ago; 0 = today
+};
+
+/* v3 — gym habit. days = weekday targets (0=Sun..6=Sat); checkins = weekdays done this week. */
+var GYM = { days:[1,3,5], checkins:[1] };   // targets Mon/Wed/Fri; went Monday
+var TODAY_DOW = 2;                          // Tuesday (Sep 15)
+var DOW_LABEL = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+/* v3 — semester wins baseline (stands in for a term's history; live actions add). */
+var SEMESTER_BASE = 45;
+
+/* Phase 5 — weekly_goal_minutes null = no goal = no dial (opt-in, shame-free) */
+var courses = [
+  { code:"ECEN 2250",      name:"Circuits & Electronics",   goalMin:540, loggedMin:270, priority:3 },
+  { code:"Statics",        name:"Statics & Structures",     goalMin:360, loggedMin:90,  priority:2 },
+  { code:"Thermodynamics", name:"Thermodynamics",           goalMin:300, loggedMin:300, priority:2 },
+  { code:"Oceanography",   name:"Intro to Oceanography",    goalMin:null, loggedMin:120, priority:1 }
+];
+
+/* ============================================================
+   FORMULAS — schema.md. In the real app these live once in
+   src/lib/attention.ts; here they are computed, never hardcoded.
+   ============================================================ */
+function staleness(c){ return c.days / c.cadence; }
+
+function scoreAssignment(a){
+  var s = 100 / Math.max(a.hours / 24, 0.25);
+  if(a.touchedDays > STALE_DAYS && a.hours <= 168) s *= 1.5;
+  return s;
+}
+function scoreCommitment(c){ return 20 * staleness(c) * c.importance; }
+
+function attentionList(){
+  var overdue = assignments
+    .filter(function(a){ return a.status==="upcoming" && a.hours < 0; })
+    .map(function(a){ return { kind:"a", item:a, score:Infinity }; });
+
+  var scored = [];
+  assignments.forEach(function(a){
+    if(a.status!=="upcoming" || a.hours < 0) return;
+    scored.push({ kind:"a", item:a, score:scoreAssignment(a) });
+  });
+  commitments.forEach(function(c){
+    if(c.status!=="active") return;               // stalled never appears here
+    if(staleness(c) < 1.0) return;                // on pace = invisible
+    scored.push({ kind:"c", item:c, score:scoreCommitment(c) });
+  });
+  scored.sort(function(x,y){ return y.score - x.score || x.item.hours - y.item.hours; });
+
+  return overdue.concat(scored).slice(0, 5);      // top 5. never more.
+}
+
+/* streak = consecutive 7-day windows ending now containing ≥1 log */
+function streakWeeks(c){
+  var k = 0;
+  while(true){
+    var lo = k*7, hi = lo+7;
+    var hit = c.logs.some(function(l){ return l.d >= lo && l.d < hi; });
+    if(!hit) return k;
+    k++;
+    if(k > 52) return k;
+  }
+}
+function doneCount(c){ return c.subs.filter(function(s){ return s.done; }).length; }
+function commitmentStatus(c){
+  if(c.status === "stalled") return "red";
+  var r = staleness(c);
+  return r >= 2 ? "red" : r >= 1 ? "amber" : "green";
+}
+function assignmentStatus(a){
+  if(a.status !== "upcoming") return null;
+  if(a.hours < 0) return "red";
+  if(a.hours <= 48) return "amber";
+  if(a.touchedDays > STALE_DAYS && a.hours <= 168) return "amber";
+  return null;
+}
+function relDays(d){ return d === 0 ? "just now" : d + "d ago"; }
+function fmtHours(min){
+  var h = min/60;
+  return (Math.round(h*10)/10).toFixed(1).replace(/\.0$/,"") + "h";
+}
+var IMPORTANCE = { 1:"low", 2:"medium", 3:"high" };
+
+/* ============================================================
+   TINY DOM HELPERS
+   ============================================================ */
+var $ = function(s,r){ return (r||document).querySelector(s); };
+function el(tag,cls,txt){ var n=document.createElement(tag); if(cls)n.className=cls; if(txt!=null)n.textContent=txt; return n; }
+function dot(status){
+  var d = el("span","dot " + (status ? "dot-"+status : "dot-none"));
+  d.setAttribute("aria-hidden","true");
+  return d;
+}
+function isPhone(){ return window.matchMedia("(max-width:767px)").matches; }
+function byId(list,id){ return list.filter(function(x){ return x.id===id; })[0]; }
+
+/* v3 — class identity. Meta for an assignment (via its course) or a commitment. */
+function metaFor(kind, item){
+  if(kind === "a"){
+    var m = COURSE_META[item.course] || {};
+    return { color:m.color || "#5B6472", icon:m.icon || "book" };
+  }
+  return { color:item.color || "#5B6472", icon:item.icon || "book" };
+}
+function tagEl(color, iconKey, sizeCls){
+  var t = el("span","tag" + (sizeCls ? " " + sizeCls : ""));
+  t.style.setProperty("--tag-color", color);
+  t.setAttribute("aria-hidden","true");
+  t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" '
+    + 'stroke-linecap="round" stroke-linejoin="round">' + (ICONS[iconKey] || ICONS.book) + '</svg>';
+  return t;
+}
+
+/* v3 — countdown from the due date. Bold; weight + colour carry urgency.
+   Red is reserved for today/overdue so "tomorrow" never reads as alarming. */
+function countdownEl(a){
+  var wrap = el("span","count");
+  var main, sub = null;
+  if(a.hours < 0){
+    main = "OVERDUE"; wrap.className = "count count-now count-loud"; sub = a.time || a.due;
+  } else if(a.day === "Today"){
+    main = "DUE TODAY"; wrap.className = "count count-now count-loud"; sub = a.time;
+  } else if(a.day === "Tomorrow" || a.hours <= 24){
+    main = "DUE TOMORROW"; wrap.className = "count count-soon count-loud"; sub = a.time;
+  } else {
+    var days = Math.round(a.hours / 24);
+    main = days + " days left";
+    wrap.className = "count" + (days <= 2 ? " count-soon" : "");
+    sub = (a.day.length > 3 ? a.day.slice(0,3) : a.day) + " · " + a.time;
+  }
+  wrap.appendChild(document.createTextNode(main));
+  if(sub) wrap.appendChild(el("span","count-sub", sub));
+  return wrap;
+}
+
+/* ============================================================
+   v3 — CELEBRATION. Neumorphic-friendly: the box sinks (pop),
+   a soft spark burst, and a green ring + banner at 100%.
+   ============================================================ */
+var CELEBRATE_COLORS = ["#3E9B6B","#3D5A80","#E09A2F","#6B4FA0","#2C8C7C"];
+function reduced(){ return window.matchMedia("(prefers-reduced-motion:reduce)").matches; }
+
+function burstAt(x, y, big){
+  if(reduced()) return;
+  var host = el("div","burst");
+  host.style.left = x + "px"; host.style.top = y + "px";
+  var n = big ? 22 : 12;
+  for(var i=0;i<n;i++){
+    var s = el("span","spark");
+    var ang = (Math.PI * 2 * i) / n + Math.random()*0.5;
+    var dist = (big ? 70 : 42) + Math.random()*(big?46:24);
+    s.style.setProperty("--dx", Math.cos(ang)*dist + "px");
+    s.style.setProperty("--dy", Math.sin(ang)*dist + "px");
+    s.style.setProperty("--rot", (Math.random()*360|0) + "deg");
+    s.style.background = CELEBRATE_COLORS[i % CELEBRATE_COLORS.length];
+    s.style.animationDelay = (Math.random()*40) + "ms";
+    host.appendChild(s);
+  }
+  document.body.appendChild(host);
+  setTimeout(function(){ host.remove(); }, 800);
+}
+/* full-panel finale when a commitment reaches 100% subtasks */
+function finaleOnPanel(msg){
+  var panel = $(".xpanel");
+  if(!panel) return;
+  if(!reduced()){
+    var ring = el("div","finale"); panel.appendChild(ring);
+    setTimeout(function(){ ring.remove(); }, 950);
+    var r = panel.getBoundingClientRect();
+    burstAt(r.left + r.width/2, r.top + Math.min(120, r.height/3), true);
+  }
+  var banner = el("div","finale-banner");
+  banner.appendChild(tagEl("#3E9B6B","trophy","tag-sm"));
+  banner.appendChild(document.createTextNode(msg));
+  panel.appendChild(banner);
+  setTimeout(function(){ banner.remove(); }, 1600);
+}
+
+/* ============================================================
+   ZONE 1 — status line
+   ============================================================ */
+function sbIcon(key, color){
+  var s = el("span","sb-ico");
+  if(color) s.style.color = color;
+  s.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" '
+    + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[key] || "") + '</svg>';
+  return s;
+}
+function nextExam(){
+  return assignments
+    .filter(function(a){ return a.exam && a.status === "upcoming" && a.hours >= 0; })
+    .sort(function(x,y){ return x.hours - y.hours; })[0] || null;
+}
+function renderStatus(){
+  var week = assignments.filter(function(a){
+    return a.status==="upcoming" && a.thisWeek && a.hours >= 0;
+  }).length;
+  // "behind" = deadlines actually missed. Commitments off cadence are
+  // "needs attention", the list below — counting them here double-reports.
+  var behind = assignments.filter(function(a){
+    return a.status==="upcoming" && a.hours < 0;
+  }).length;
+
+  var bar = $("#statusline");
+  bar.textContent = "";
+
+  bar.appendChild(el("span","sb-date", TODAY));
+  bar.appendChild(el("span","sb-sep"));
+
+  // deadlines this week — accent coloured
+  var dl = el("span","sb-item");
+  dl.appendChild(sbIcon("book", "var(--accent)"));
+  dl.appendChild(el("span","sb-num sb-deadlines", String(week)));
+  dl.appendChild(document.createTextNode((week===1 ? " deadline" : " deadlines") + " this week"));
+  bar.appendChild(dl);
+
+  bar.appendChild(el("span","sb-sep"));
+
+  // behind — red if any, green "on pace" if clean
+  var bh = el("span","sb-item");
+  if(behind){
+    bh.appendChild(sbIcon("flame", "var(--status-red)"));
+    bh.appendChild(el("span","sb-num sb-behind-bad", String(behind)));
+    bh.appendChild(document.createTextNode(behind===1 ? " thing behind" : " things behind"));
+  } else {
+    bh.appendChild(el("span","sb-behind-ok","on pace"));
+  }
+  bar.appendChild(bh);
+
+  // next exam — flows inline, class colour + urgency-tiered countdown
+  var ex = nextExam();
+  if(ex){
+    bar.appendChild(el("span","sb-sep"));
+    var m = metaFor("a", ex);
+    var days = Math.max(1, Math.round(ex.hours / 24));
+    var when = el("span","sb-exam-when" + (days <= 2 ? " now" : days <= 7 ? " soon" : ""),
+      days === 1 ? "tomorrow" : "in " + days + "d");
+    var wrap = el("span","sb-item sb-exam");
+    wrap.appendChild(sbIcon("grad", m.color));
+    wrap.appendChild(el("span","sb-exam-name", ex.course + " " + ex.title));
+    wrap.appendChild(when);
+    bar.appendChild(wrap);
+  }
+}
+
+/* ============================================================
+   ZONE 2 — needs attention
+   ============================================================ */
+function renderAttention(){
+  var host = $("#na-rows");
+  host.textContent = "";
+  var list = attentionList();
+
+  if(!list.length){
+    host.appendChild(el("p","empty","Nothing behind. Go live your life."));
+    return;
+  }
+
+  list.forEach(function(entry){
+    var isA = entry.kind === "a";
+    var item = entry.item;
+    var m = metaFor(entry.kind, item);
+    var row = el("button","row"); row.type = "button";
+
+    row.appendChild(dot(isA ? assignmentStatus(item) : commitmentStatus(item)));
+    row.appendChild(tagEl(m.color, m.icon));
+
+    var main = el("div","row-main");
+    if(isA){
+      var k = el("span","row-kicker", item.course);
+      k.style.color = m.color;                      // colored course label = identity
+      main.appendChild(k);
+      main.appendChild(el("span","row-text", item.title));
+      if(item.hours < 0) main.appendChild(el("span","tag-overdue","OVERDUE"));
+      if(item.exam) main.appendChild(el("span","tag-exam","EXAM"));
+    } else {
+      main.appendChild(el("span","row-text", item.name));
+      main.appendChild(el("span","row-kicker","commitment"));
+    }
+    row.appendChild(main);
+
+    if(isA){
+      row.appendChild(countdownEl(item));
+    } else {
+      row.appendChild(el("span","row-meta", item.days + "d since progress"));
+    }
+
+    row.addEventListener("click", function(){
+      open(isA ? "assignment" : "commitment", item.id, row);
+    });
+    host.appendChild(row);
+  });
+}
+
+/* ============================================================
+   ZONE 3 — deadlines, next 7 days (preview)
+   ============================================================ */
+function upcomingSorted(){
+  return assignments
+    .filter(function(a){ return a.status==="upcoming"; })
+    .sort(function(x,y){ return x.hours - y.hours; });
+}
+function renderDeadlines(){
+  var host = $("#dl-rows");
+  host.textContent = "";
+  upcomingSorted()
+    .filter(function(a){ return a.hours >= 0; })   // overdue is already pinned above
+    .slice(0,3)
+    .forEach(function(a){
+      var m = metaFor("a", a);
+      var row = el("button","row"); row.type = "button";
+      row.appendChild(tagEl(m.color, m.icon));
+      var main = el("div","row-main");
+      var k = el("span","row-kicker", a.course); k.style.color = m.color;
+      main.appendChild(k);
+      main.appendChild(el("span","row-text", a.title));
+      if(a.exam) main.appendChild(el("span","tag-exam","EXAM"));
+      row.appendChild(main);
+      row.appendChild(countdownEl(a));             // bold countdown = urgency
+      row.addEventListener("click", function(ev){
+        ev.stopPropagation();                      // row → assignment, panel → Deadlines window
+        open("assignment", a.id, row);
+      });
+      host.appendChild(row);
+    });
+}
+
+/* ============================================================
+   ZONE 4 — commitments
+   ============================================================ */
+function renderCommitments(){
+  var host = $("#cm-grid");
+  host.textContent = "";
+  commitments.filter(function(c){ return c.status==="active"; }).forEach(function(c){
+    var card = el("button","ccard"); card.type = "button";
+    var top = el("div","ccard-top");
+    top.appendChild(tagEl(c.color, c.icon, "tag-sm"));
+    top.appendChild(dot(commitmentStatus(c)));
+    top.appendChild(el("span","ccard-name", c.name));
+    card.appendChild(top);
+
+    var foot = el("div","ccard-foot");
+    foot.appendChild(el("span","num", c.days + "d"));
+    foot.appendChild(el("span","ccard-sep","·"));
+    foot.appendChild(el("span","num", doneCount(c) + "/" + c.subs.length));
+    card.appendChild(foot);
+
+    card.addEventListener("click", function(){ open("commitment", c.id, card); });
+    host.appendChild(card);
+  });
+}
+
+/* ============================================================
+   ZONE 5 — stalled, one collapsed line
+   ============================================================ */
+function renderStalled(){
+  var line = $("#stalled-line"), chips = $("#stalled-chips");
+  var stalled = commitments.filter(function(c){ return c.status==="stalled"; });
+  if(!stalled.length){ line.hidden = true; chips.hidden = true; return; }
+  line.hidden = false;
+
+  var isOpen = line.getAttribute("aria-expanded") === "true";
+  line.textContent = "";
+  line.appendChild(el("strong",null,String(stalled.length)));
+  line.appendChild(document.createTextNode(" stalled"));
+  line.appendChild(el("span","chev", isOpen ? "⌄" : "›"));
+
+  chips.textContent = "";
+  stalled.forEach(function(c){
+    var chip = el("button","chip"); chip.type = "button";
+    chip.appendChild(dot("red"));
+    chip.appendChild(el("span",null,c.name));
+    chip.appendChild(el("span","num", c.days + "d"));
+    chip.addEventListener("click", function(){ open("commitment", c.id, chip); });
+    chips.appendChild(chip);
+  });
+  chips.hidden = !isOpen;
+}
+
+/* ============================================================
+   ZONE 6 — study line (Phase 5)
+   ============================================================ */
+/* v3 — reusable split-flap spinner (shared by the hero + the Wins view) */
+function buildFlaps(container, target){
+  container.textContent = "";
+  var digits = Math.max(2, String(target).length);
+  var els = [];
+  for(var i=0;i<digits;i++){
+    var f = el("div","flap"); var d = el("span","flap-digit","0");
+    f.appendChild(d); container.appendChild(f); els.push(d);
+  }
+  function setBoard(v){
+    var s = String(v); while(s.length < digits) s = "0" + s;
+    for(var i=0;i<digits;i++){
+      if(els[i].textContent !== s.charAt(i)){
+        els[i].textContent = s.charAt(i);
+        var fl = els[i].parentNode;
+        fl.classList.remove("is-flipping"); void fl.offsetWidth; fl.classList.add("is-flipping");
+      }
+    }
+  }
+  var timer = null;
+  function roll(onDone){
+    if(timer) return;
+    if(reduced()){ setBoard(target); if(onDone) onDone(); return; }
+    var cur = 0;
+    (function step(){
+      var rem = target - cur;
+      var inc = Math.max(1, Math.round(rem * 0.14));   // ease-out: fast, then slowing
+      cur = Math.min(target, cur + inc);
+      setBoard(cur);
+      if(cur < target){ timer = setTimeout(step, 55 + (target - rem) * 0.4); }
+      else { timer = null; if(onDone) onDone(); }
+    })();
+  }
+  return { setBoard:setBoard, roll:roll };
+}
+
+/* v3 — cumulative study dial for the hero. One semicircle, its arc split into
+   class-coloured segments, so it reads as "how close to my weekly goal" AND
+   "which classes got the time" at a glance. */
+function renderHeroStudy(){
+  var wrap = $("#cumdial");
+  var legend = $("#cumdial-legend");
+  if(!wrap) return;
+  wrap.textContent = ""; legend.textContent = "";
+
+  var totalGoal   = courses.reduce(function(n,c){ return n + (c.goalMin || 0); }, 0);
+  var totalLogged = courses.reduce(function(n,c){ return n + c.loggedMin; }, 0);
+  var L = 188.5;                              // π × 60
+  var ARC = "M20 80 A60 60 0 0 1 140 80";
+  var id = "cum";
+
+  var svg = '<svg class="cumdial" viewBox="0 0 160 100" aria-hidden="true">'
+    + '<defs>'
+    +   '<filter id="b'+id+'" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.8"/></filter>'
+    +   '<mask id="m'+id+'"><path d="'+ARC+'" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/></mask>'
+    + '</defs>'
+    + '<g mask="url(#m'+id+')">'
+    +   '<path d="'+ARC+'" fill="none" stroke="#E4E8EE" stroke-width="16"/>'
+    +   '<path d="'+ARC+'" fill="none" stroke="rgba(163,177,198,0.8)" stroke-width="7" transform="translate(-2,-2)" filter="url(#b'+id+')"/>'
+    +   '<path d="'+ARC+'" fill="none" stroke="#FFFFFF" stroke-width="7" transform="translate(2.4,2.4)" filter="url(#b'+id+')"/>'
+    + '</g>';
+
+  // colour segments, one per course with logged time
+  var cum = 0;
+  courses.forEach(function(c){
+    if(c.loggedMin <= 0 || totalGoal <= 0) return;
+    var color = (COURSE_META[c.code] || {}).color || "#5B6472";
+    var segLen = Math.min((c.loggedMin / totalGoal) * L, L - cum);
+    if(segLen <= 0) return;
+    var draw = Math.max(segLen - 1.2, 1);            // 1.2 hairline gap between segments
+    svg += '<path class="cumseg" d="'+ARC+'" fill="none" stroke="'+color+'" stroke-width="11"'
+        +  ' stroke-linecap="butt" opacity="0.82"'
+        +  ' stroke-dasharray="'+draw+' '+(L - draw)+'" stroke-dashoffset="'+(-cum)+'"/>';
+    cum += segLen;
+  });
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+
+  var center = el("div","cumdial-center num");
+  center.innerHTML = fmtHours(totalLogged) + ' <span>/ ' + fmtHours(totalGoal) + '</span>';
+  wrap.appendChild(center);
+
+  courses.forEach(function(c){
+    if(c.loggedMin <= 0) return;
+    var color = (COURSE_META[c.code] || {}).color || "#5B6472";
+    var d = el("span","legdot");
+    var chip = el("i"); chip.style.background = color;
+    d.appendChild(chip);
+    d.appendChild(document.createTextNode(c.code + " " + fmtHours(c.loggedMin)));
+    legend.appendChild(d);
+  });
+}
+
+/* v3 — hero win counter. Rolls once on load (a greeting); later re-renders
+   update the board silently so nothing animates unprompted. */
+var heroFlaps = null, heroRolledOnce = false;
+function renderHeroWins(){
+  var host = $("#hero-flaps");
+  if(!host) return;
+  var target = semesterDone();
+  if(!heroFlaps || host.children.length === 0){ heroFlaps = buildFlaps(host, target); }
+  else { heroFlaps.setBoard(target); }
+}
+function heroRollOnce(){
+  if(heroRolledOnce || !heroFlaps) return;
+  heroRolledOnce = true;
+  heroFlaps.roll();
+}
+
+/* ============================================================
+   v3 — LEFT-OFF CARD (collapsed view; edit is a separate mode)
+   ============================================================ */
+var leftOffEditing = false;
+function renderLeftOff(){
+  var body = $("#leftoff-body");
+  var card = $("#leftoff");
+  body.textContent = "";
+
+  if(leftOffEditing){
+    card.setAttribute("aria-label","Editing your note");
+    body.appendChild(el("div","leftoff-label","Where you left off"));
+    var ta = el("textarea","leftoff-edit");
+    ta.value = leftOff.note;
+    ta.placeholder = "What did you just do, and where do you pick up next?";
+    body.appendChild(ta);
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.addEventListener("blur", function(){
+      var v = ta.value.trim();
+      leftOff.note = v;
+      if(v) leftOff.d = 0;
+      leftOffEditing = false;
+      renderLeftOff();
+      if(v) toast("Note saved");
+    });
+    ta.addEventListener("keydown", function(e){
+      if(e.key === "Escape"){ leftOffEditing = false; renderLeftOff(); }
+    });
+    return;
+  }
+
+  body.appendChild(el("div","leftoff-label","Where you left off"));
+  if(leftOff.note){
+    body.appendChild(el("div","leftoff-text", leftOff.note));
+    body.appendChild(el("div","leftoff-when", leftOff.d === 0 ? "noted today" : "noted " + leftOff.d + "d ago"));
+  } else {
+    body.appendChild(el("div","leftoff-text is-empty","Nothing noted. Click to jot where you stopped."));
+  }
+}
+function editLeftOff(){ if(!leftOffEditing){ leftOffEditing = true; renderLeftOff(); } }
+
+/* ============================================================
+   v3 — GYM habit strip (the one habit the app tracks)
+   ============================================================ */
+function renderGym(){
+  var host = $("#gym");
+  host.textContent = "";
+
+  var head = el("div","gym-head");
+  head.appendChild(tagEl("#3E9B6B","dumbbell"));
+  var htext = el("div");
+  htext.appendChild(el("div","gym-title","Gym"));
+  htext.appendChild(el("div","gym-sub", GYM.checkins.length + " of " + GYM.days.length + " this week"));
+  head.appendChild(htext);
+  host.appendChild(head);
+
+  var week = el("div","gym-week");
+  for(var d=0; d<7; d++){
+    var isTarget = GYM.days.indexOf(d) >= 0;
+    var isDone   = GYM.checkins.indexOf(d) >= 0;
+    var isPast   = d < TODAY_DOW;
+    var isToday  = d === TODAY_DOW;
+
+    var pip = el("button","pip"); pip.type = "button";
+    var cls = "pip";
+    if(!isTarget && !isDone){ cls += " pip-off"; pip.disabled = true; }
+    else if(isDone){ cls += " pip-done"; }
+    else if(isTarget && isPast){ cls += " pip-missed"; }
+    else if(isToday){ cls += " pip-today pip-target"; }
+    else { cls += " pip-target"; }
+    pip.className = cls;
+
+    pip.appendChild(el("span","pip-day", DOW_LABEL[d]));
+    var mark = el("span","pip-mark");
+    if(isDone){
+      mark.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    } else if(isTarget){
+      mark.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"/></svg>';
+    }
+    pip.appendChild(mark);
+    pip.setAttribute("aria-label", DOW_LABEL[d] + (isDone ? " — went" : isTarget ? " — gym day" : " — rest day"));
+
+    (function(day, target, done, node){
+      if(!target && !done) return;
+      node.addEventListener("click", function(){
+        var i = GYM.checkins.indexOf(day);
+        if(i >= 0){
+          GYM.checkins.splice(i,1); renderGym(); renderHeroWins();
+          toast("Gym check removed");
+        } else {
+          GYM.checkins.push(day);
+          var r = node.getBoundingClientRect();
+          renderGym(); renderHeroWins();
+          burstAt(r.left + r.width/2, r.top + r.height/2, false);
+          toast("Nice. Logged a gym day.", function(){
+            var j = GYM.checkins.indexOf(day);
+            if(j>=0) GYM.checkins.splice(j,1);
+            renderGym(); renderHeroWins();
+          });
+        }
+      });
+    })(d, isTarget, isDone, pip);
+
+    week.appendChild(pip);
+  }
+  host.appendChild(week);
+}
+
+/* v3 — semester wins (derived: assignments done + subtasks checked + gym days) */
+function semesterDone(){
+  var subsDone   = commitments.reduce(function(n,c){ return n + doneCount(c); }, 0);
+  var doneAssign = assignments.filter(function(a){ return a.status === "done"; }).length;
+  return SEMESTER_BASE + doneAssign + subsDone + GYM.checkins.length;
+}
+
+/* v3 — gym day picker in Settings */
+function renderGymDays(){
+  var host = $("#s-gym-days");
+  if(!host) return;
+  host.textContent = "";
+  for(var d=0; d<7; d++){
+    var on = GYM.days.indexOf(d) >= 0;
+    var b = el("button","seg" + (on ? " is-on" : ""), DOW_LABEL[d]);
+    b.type = "button";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    (function(day){
+      b.addEventListener("click", function(){
+        var i = GYM.days.indexOf(day);
+        if(i >= 0) GYM.days.splice(i,1); else GYM.days.push(day);
+        var j = GYM.checkins.indexOf(day);
+        if(i >= 0 && j >= 0) GYM.checkins.splice(j,1);   // dropping a target clears its check
+        renderGymDays(); renderGym(); renderHeroWins();
+      });
+    })(d);
+    host.appendChild(b);
+  }
+}
+
+function renderDash(){
+  renderStatus(); renderHeroStudy(); renderHeroWins(); renderLeftOff();
+  renderAttention(); renderDeadlines();
+  renderCommitments(); renderGym(); renderStalled();
+}
+
+/* ============================================================
+   OVERLAY — expand-in-place morph (desktop) / bottom sheet (phone)
+   One detail view open at a time; Esc always closes.
+   ============================================================ */
+var stack = [];
+var overlay = $("#overlay"), backdrop = $("#backdrop");
+var REDUCED = window.matchMedia("(prefers-reduced-motion:reduce)");
+
+function open(type, id, source){
+  stack.push({ type:type, id:id, source:source || null });
+  paint(true);
+}
+function closeTop(){
+  if(stack.length <= 1){ stack = []; teardown(); }
+  else { stack.pop(); paint(false); }
+}
+function closeAll(){ stack = []; teardown(); }
+
+function teardown(){
+  var panel = $(".xpanel", overlay);
+  backdrop.classList.remove("is-on");
+
+  if(!panel){ finish(null); return; }
+  var source = panel._source;
+
+  if(REDUCED.matches){ finish(source); return; }
+
+  if(isPhone()){
+    panel.style.transition = "transform 200ms cubic-bezier(.22,.68,.36,1)";
+    panel.style.transform = "translateY(100%)";
+  } else {
+    var t = panel.getBoundingClientRect();
+    var s = (source && document.body.contains(source)) ? source.getBoundingClientRect() : null;
+    var inner = $(".xpanel-inner", panel);
+    if(inner) inner.style.opacity = "0";
+    panel.style.transition = "transform 220ms cubic-bezier(.22,.68,.36,1), opacity 220ms cubic-bezier(.22,.68,.36,1)";
+    panel.style.transform = s
+      ? "translate(" + (s.left-t.left) + "px," + (s.top-t.top) + "px) scale(" + (s.width/t.width) + "," + (s.height/t.height) + ")"
+      : "scale(.96)";
+    panel.style.opacity = "0";
+  }
+  setTimeout(function(){ finish(source); }, 230);
+
+  function finish(src){
+    overlay.hidden = true; backdrop.hidden = true; overlay.textContent = "";
+    document.body.style.overflow = "";
+    if(src && document.body.contains(src)) src.focus();
+  }
+}
+
+function paint(morph){
+  var top = stack[stack.length-1];
+
+  overlay.hidden = false; backdrop.hidden = false;
+  document.body.style.overflow = "hidden";
+  requestAnimationFrame(function(){ backdrop.classList.add("is-on"); });
+
+  overlay.textContent = "";
+  var panel = el("div","xpanel");
+  panel._source = top.source;
+
+  var close = el("button","xclose");
+  close.type = "button";
+  close.setAttribute("aria-label","Close");
+  close.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  close.addEventListener("click", closeTop);
+  panel.appendChild(close);
+
+  var inner = el("div","xpanel-inner");
+  if(top.type === "commitment") buildCommitment(inner, byId(commitments, top.id));
+  if(top.type === "assignment") buildAssignment(inner, byId(assignments, top.id));
+  if(top.type === "deadlines")  buildDeadlines(inner);
+  if(top.type === "study")      buildStudy(inner);
+  if(top.type === "wins")       buildWins(inner);
+  panel.appendChild(inner);
+  overlay.appendChild(panel);
+
+  if(REDUCED.matches){ close.focus(); return; }
+
+  if(isPhone()){
+    panel.style.transform = "translateY(100%)";
+    requestAnimationFrame(function(){
+      panel.style.transition = "transform 200ms cubic-bezier(.22,.68,.36,1)";
+      panel.style.transform = "translateY(0)";
+    });
+  } else {
+    var t = panel.getBoundingClientRect();
+    var s = (morph && top.source) ? top.source.getBoundingClientRect() : null;
+    panel.style.transform = s
+      ? "translate(" + (s.left-t.left) + "px," + (s.top-t.top) + "px) scale(" + (s.width/t.width) + "," + (s.height/t.height) + ")"
+      : "scale(.97)";
+    panel.style.opacity = ".35";
+    inner.style.opacity = "0";
+    requestAnimationFrame(function(){
+      panel.style.transition = "transform 220ms cubic-bezier(.22,.68,.36,1), opacity 220ms cubic-bezier(.22,.68,.36,1)";
+      panel.style.transform = "none";
+      panel.style.opacity = "1";
+      inner.style.transition = "opacity 160ms cubic-bezier(.22,.68,.36,1) 70ms";
+      inner.style.opacity = "1";
+    });
+  }
+  setTimeout(function(){ close.focus(); }, 40);
+}
+
+backdrop.addEventListener("click", closeAll);
+overlay.addEventListener("click", function(e){ if(e.target === overlay) closeAll(); });
+document.addEventListener("keydown", function(e){ if(e.key === "Escape" && stack.length) closeTop(); });
+
+/* ============================================================
+   COMMITMENT EXPANDED — "a small project"
+   ============================================================ */
+function buildCommitment(root, c){
+  var head = el("div","xhead");
+  head.appendChild(el("h2","xtitle", c.name));
+  var sub = el("div","xsub");
+  sub.appendChild(el("span",null, c.category + " · " + IMPORTANCE[c.importance] + " importance"));
+  var st = commitmentStatus(c);
+  sub.appendChild(el("span","pill is-" + st, c.status));
+  head.appendChild(sub);
+  root.appendChild(head);
+
+  var meta = el("div","xmeta");
+  meta.appendChild(el("span",null,"last progress " + c.days + "d ago"));
+  meta.appendChild(el("span",null,"cadence every " + c.cadence + "d"));
+  meta.appendChild(el("span",null,"streak " + streakWeeks(c) + " wk"));
+  root.appendChild(meta);
+
+  /* progress groove — derived from subtasks only */
+  var gsec = el("div","xsection");
+  gsec.appendChild(el("div","xlabel","Progress"));
+  var wrap = el("div","groove-wrap");
+  var groove = el("div","groove");
+  var fill = el("div","groove-fill");
+  groove.appendChild(fill);
+  var glabel = el("span","groove-label num");
+  wrap.appendChild(groove); wrap.appendChild(glabel);
+  gsec.appendChild(wrap); root.appendChild(gsec);
+
+  function paintGroove(){
+    var d = doneCount(c), n = c.subs.length;
+    fill.style.width = (n ? d/n*100 : 0) + "%";
+    fill.style.backgroundColor = "var(--status-" + commitmentStatus(c) + ")";
+    glabel.textContent = d + "/" + n;
+  }
+
+  /* context — autosaves on blur, never required */
+  var csec = el("div","xsection");
+  csec.appendChild(el("div","xlabel","Context"));
+  var ta = el("textarea","field");
+  ta.value = c.context;
+  ta.placeholder = "What is this, and what is actually blocking it?";
+  ta.addEventListener("blur", function(){
+    if(ta.value !== c.context){ c.context = ta.value; toast("Context saved"); }
+  });
+  csec.appendChild(ta); root.appendChild(csec);
+
+  /* subtasks — checking one auto-logs progress */
+  var ssec = el("div","xsection");
+  ssec.appendChild(el("div","xlabel","Subtasks"));
+  var list = el("div","checks");
+  ssec.appendChild(list);
+
+  function paintSubs(){
+    list.textContent = "";
+    c.subs.forEach(function(sub, i){
+      var row = el("div","check" + (sub.done ? " is-done" : ""));
+
+      var box = el("button","check-box"); box.type = "button";
+      box.setAttribute("aria-pressed", sub.done ? "true" : "false");
+      box.setAttribute("aria-label", (sub.done ? "Uncheck " : "Check ") + sub.t);
+      box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
+      var title = el("button","check-title", sub.t); title.type = "button";
+
+      function toggle(){
+        sub.done = !sub.done;
+        if(sub.done){
+          c.days = 0;
+          c.logs.unshift({ d:0, note:sub.t });      // one tap feeds momentum
+          var nowAll = doneCount(c) === c.subs.length;
+          var r = box.getBoundingClientRect();      // capture before repaint
+          paintSubs(); paintGroove(); paintMeta(); renderDash();
+          // celebrate: pop the freshly-rendered box + spark burst
+          var fresh = list.querySelectorAll(".check-box")[i];
+          if(fresh) fresh.classList.add("pop");
+          burstAt(r.left + r.width/2, r.top + r.height/2, false);
+          if(nowAll){                                // every subtask done → finale
+            finaleOnPanel("All steps done!");
+            toast(c.name + ": all steps done", undoCheck);
+          } else {
+            toast("Progress logged on " + c.name, undoCheck);
+          }
+        } else {
+          paintSubs(); paintGroove(); paintMeta(); renderDash();
+        }
+        function undoCheck(){
+          sub.done = false; c.logs.shift(); c.days = c.logs[0] ? c.logs[0].d : c.days;
+          paintSubs(); paintGroove(); paintMeta(); renderDash();
+        }
+      }
+      box.addEventListener("click", toggle);
+      title.addEventListener("click", toggle);
+
+      var del = el("button","check-del"); del.type = "button";
+      del.setAttribute("aria-label","Delete " + sub.t);
+      del.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener("click", function(){
+        var gone = c.subs.splice(i,1)[0];
+        paintSubs(); paintGroove(); renderDash();
+        toast("Deleted “" + gone.t + "”", function(){
+          c.subs.splice(i,0,gone); paintSubs(); paintGroove(); renderDash();
+        });
+      });
+
+      row.appendChild(box); row.appendChild(title); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  var add = el("form","addrow");
+  var input = el("input");
+  input.type = "text"; input.placeholder = "+ add a next step";
+  input.setAttribute("aria-label","Add a next step");
+  add.appendChild(input);
+  add.addEventListener("submit", function(e){
+    e.preventDefault();
+    var v = input.value.trim();
+    if(!v) return;
+    c.subs.push({ t:v, done:false });
+    input.value = "";
+    paintSubs(); paintGroove(); renderDash();
+  });
+  ssec.appendChild(add);
+  root.appendChild(ssec);
+
+  /* recent progress — read-only, last 5 */
+  var lsec = el("div","xsection");
+  lsec.appendChild(el("div","xlabel","Recent progress"));
+  var logs = el("div","logs");
+  lsec.appendChild(logs);
+  root.appendChild(lsec);
+
+  function paintLogs(){
+    logs.textContent = "";
+    c.logs.slice(0,5).forEach(function(l){
+      var row = el("div","log");
+      row.appendChild(el("span","log-when num", relDays(l.d)));
+      row.appendChild(el("span","log-note", l.note));
+      logs.appendChild(row);
+    });
+  }
+
+  /* actions — state-legal only */
+  var actions = el("div","actions");
+  root.appendChild(actions);
+
+  function paintMeta(){
+    meta.textContent = "";
+    meta.appendChild(el("span",null,"last progress " + (c.days === 0 ? "just now" : c.days + "d ago")));
+    meta.appendChild(el("span",null,"cadence every " + c.cadence + "d"));
+    meta.appendChild(el("span",null,"streak " + streakWeeks(c) + " wk"));
+    sub.textContent = "";
+    sub.appendChild(el("span",null, c.category + " · " + IMPORTANCE[c.importance] + " importance"));
+    sub.appendChild(el("span","pill is-" + commitmentStatus(c), c.status));
+    paintLogs();
+  }
+
+  if(c.status === "active"){
+    actions.appendChild(button("Log progress","btn-hero", function(){
+      var prevDays = c.days;
+      c.days = 0; c.logs.unshift({ d:0, note:"Logged progress" });
+      renderDash(); closeTop();
+      toast("Progress logged on " + c.name, function(){
+        c.days = prevDays; c.logs.shift(); renderDash();
+      });
+    }));
+    actions.appendChild(button("Mark stalled", null, function(){
+      c.status = "stalled"; renderDash(); closeTop();
+      toast(c.name + " marked stalled", function(){ c.status = "active"; renderDash(); });
+    }));
+    actions.appendChild(button("Edit cadence", null, function(){
+      toast("Cadence + importance editor — not wired in this mockup");
+    }));
+    actions.appendChild(el("span","spacer"));
+    actions.appendChild(confirmButton("Archive","Archive — sure?", function(){
+      c.status = "archived"; renderDash(); closeTop();
+      toast(c.name + " archived", function(){ c.status = "active"; renderDash(); });
+    }));
+  } else {
+    actions.appendChild(button("Resume","btn-hero", function(){
+      var prev = c.days;
+      c.status = "active"; c.days = 0; c.logs.unshift({ d:0, note:"Resumed" });
+      renderDash(); closeTop();
+      toast(c.name + " resumed", function(){
+        c.status = "stalled"; c.days = prev; c.logs.shift(); renderDash();
+      });
+    }));
+    actions.appendChild(el("span","spacer"));
+    actions.appendChild(confirmButton("Archive","Archive — sure?", function(){
+      c.status = "archived"; renderDash(); closeTop();
+      toast(c.name + " archived", function(){ c.status = "stalled"; renderDash(); });
+    }));
+  }
+
+  paintGroove(); paintSubs(); paintLogs();
+}
+
+/* ============================================================
+   ASSIGNMENT DETAIL
+   ============================================================ */
+function buildAssignment(root, a){
+  var head = el("div","xhead");
+  head.appendChild(el("h2","xtitle", a.title));
+  var sub = el("div","xsub");
+  sub.appendChild(el("span",null, a.course));
+  if(a.status === "upcoming" && a.hours < 0) sub.appendChild(el("span","pill is-red","overdue"));
+  if(a.status === "done") sub.appendChild(el("span","pill is-green","done"));
+  head.appendChild(sub);
+  root.appendChild(head);
+
+  var meta = el("div","xmeta");
+  meta.appendChild(el("span",null, a.status === "done" ? "was due " + a.due : a.due));
+  if(a.touchedDays > STALE_DAYS && a.status === "upcoming")
+    meta.appendChild(el("span",null,"untouched for " + a.touchedDays + "d"));
+  root.appendChild(meta);
+
+  var d = el("div","xsection");
+  d.appendChild(el("div","xlabel","Detail"));
+  d.appendChild(el("p","xtext", a.detail));
+  root.appendChild(d);
+
+  var actions = el("div","actions");
+  if(a.status === "upcoming"){
+    actions.appendChild(button("Log progress","btn-hero", function(){
+      var prev = a.touchedDays;
+      a.touchedDays = 0; renderDash(); closeTop();
+      toast("Progress logged on " + a.title, function(){
+        a.touchedDays = prev; renderDash();
+      });
+    }));
+    actions.appendChild(button("Mark done", null, function(){
+      a.status = "done"; renderDash(); closeTop();
+      toast(a.title + " marked done", function(){ a.status = "upcoming"; renderDash(); });
+    }));
+    actions.appendChild(el("span","spacer"));
+    actions.appendChild(confirmButton("Dismiss","Dismiss — sure?", function(){
+      a.status = "dismissed"; renderDash(); closeTop();
+      toast(a.title + " dismissed", function(){ a.status = "upcoming"; renderDash(); });
+    }));
+  } else {
+    actions.appendChild(button("Reopen","btn-hero", function(){
+      a.status = "upcoming"; renderDash(); closeTop();
+      toast(a.title + " reopened", function(){ a.status = "done"; renderDash(); });
+    }));
+  }
+  root.appendChild(actions);
+}
+
+/* ============================================================
+   DEADLINES EXPANDED — "This Week"
+   ============================================================ */
+/* Window options. Default = 24h. Overdue is always shown, pinned. */
+var DL_WINDOWS = [
+  { key:"24h",  label:"Next 24h", hours:24 },
+  { key:"3d",   label:"3 days",   hours:72 },
+  { key:"1w",   label:"1 week",   hours:168 },
+  { key:"2w",   label:"2 weeks",  hours:336 },
+  { key:"4w",   label:"4 weeks",  hours:672 },
+  { key:"all",  label:"All",      hours:Infinity }
+];
+var dlWindow = "24h";   // persists across re-opens within a session
+
+function buildDeadlines(root){
+  var head = el("div","xhead");
+  head.appendChild(el("h2","xtitle","Deadlines"));
+  var sub = el("div","xsub");
+  head.appendChild(sub);
+  root.appendChild(head);
+
+  // segmented window selector
+  var seg = el("div","segmented");
+  seg.setAttribute("role","group");
+  seg.setAttribute("aria-label","Time window");
+  DL_WINDOWS.forEach(function(w){
+    var b = el("button","seg" + (w.key === dlWindow ? " is-on" : ""), w.label);
+    b.type = "button";
+    b.setAttribute("aria-pressed", w.key === dlWindow ? "true" : "false");
+    b.addEventListener("click", function(){ dlWindow = w.key; rebuild(); });
+    seg.appendChild(b);
+  });
+  root.appendChild(seg);
+
+  // fixed-height body: switching the window never resizes the panel
+  var body = el("div","xsection dl-body");
+  root.appendChild(body);
+  var foot = el("p","xfoot");
+  root.appendChild(foot);
+
+  function rebuild(){
+    [].forEach.call(seg.children, function(b, i){
+      var on = DL_WINDOWS[i].key === dlWindow;
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var win = DL_WINDOWS.filter(function(w){ return w.key === dlWindow; })[0];
+    sub.textContent = win.hours === Infinity ? "Everything upcoming" : "Due within " + win.label.toLowerCase();
+
+    // overdue always shown; upcoming filtered to the window
+    var shown = upcomingSorted().filter(function(a){
+      return a.hours < 0 || a.hours <= win.hours;
+    });
+
+    body.textContent = "";
+    if(!shown.length){
+      body.appendChild(el("p","empty","Nothing due in this window. Widen it above, or go do something else."));
+      foot.textContent = "";
+      return;
+    }
+
+    // group in TIME order: rows are pre-sorted by hours, so start a new day
+    // group whenever the day label changes (day names stay chronological).
+    var curDay = null, rows = null;
+    shown.forEach(function(a){
+      if(a.day !== curDay){
+        curDay = a.day;
+        var group = el("div","daygroup");
+        group.appendChild(el("div","dayhead" + (curDay === "Overdue" ? " is-overdue" : ""), curDay));
+        rows = el("div","rows");
+        group.appendChild(rows);
+        body.appendChild(group);
+      }
+      var m = metaFor("a", a);
+      var row = el("button","row"); row.type = "button";
+      row.appendChild(tagEl(m.color, m.icon));
+      var main = el("div","row-main");
+      var k = el("span","row-kicker", a.course); k.style.color = m.color;
+      main.appendChild(k);
+      main.appendChild(el("span","row-text", a.title));
+      if(a.exam) main.appendChild(el("span","tag-exam","EXAM"));
+      row.appendChild(main);
+      row.appendChild(countdownEl(a));
+      row.addEventListener("click", function(){ open("assignment", a.id, row); });
+      rows.appendChild(row);
+    });
+
+    var n = shown.length;
+    var m2 = assignments.filter(function(a){ return a.status === "done" && a.thisWeek; }).length;
+    foot.textContent = n + (n===1 ? " deadline" : " deadlines") + " shown · " + m2 + " done this week";
+  }
+  rebuild();
+}
+
+/* ============================================================
+   v3 — WINS EXPANDED. Split-flap counter of everything finished
+   this semester. The dashboard stays free of stat tiles; the
+   feel-good lives here and in the hero counter.
+   ============================================================ */
+function buildWins(root){
+  var head = el("div","xhead");
+  head.appendChild(el("h2","xtitle","Wins"));
+  head.appendChild(el("div","xsub","Everything you've finished this semester"));
+  root.appendChild(head);
+
+  var flapHead = el("div","flap-head");
+  var play = el("button","flap-play"); play.type = "button";
+  play.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  play.appendChild(document.createTextNode("Roll it up"));
+  flapHead.appendChild(play);
+  root.appendChild(flapHead);
+
+  var section = el("div","xsection");
+  var board = el("div","flaps");
+  section.appendChild(board);
+  section.appendChild(el("p","flap-caption","assignments completed + steps checked off + gym days"));
+  root.appendChild(section);
+
+  var flaps = buildFlaps(board, semesterDone());
+  function roll(){
+    flaps.roll(function(){
+      var r = board.getBoundingClientRect();
+      burstAt(r.left + r.width/2, r.top + r.height/2, true);
+    });
+  }
+  play.addEventListener("click", roll);
+
+  // future feel-good dials land here (deferred on purpose)
+  var future = el("div","wins-grid");
+  future.appendChild(el("div","wins-future","More dials land here later — “how caught up am I”, streak rings, a term-progress arc. Deferred on purpose; this stays a place you visit to feel good, never a place with homework."));
+  root.appendChild(future);
+
+  setTimeout(roll, 260);   // roll on open, after the morph settles
+}
+
+/* ============================================================
+   STUDY EXPANDED (Phase 5) — dials only for courses with a goal
+   ============================================================ */
+function buildStudy(root){
+  var head = el("div","xhead");
+  head.appendChild(el("h2","xtitle","Study"));
+  head.appendChild(el("div","xsub","Mon Sep 14 — Sun Sep 20 · America/Denver"));
+  root.appendChild(head);
+
+  var section = el("div","xsection");
+  var grid = el("div","study-grid");
+  section.appendChild(grid);
+  root.appendChild(section);
+
+  courses.forEach(function(course){
+    var card = el("div","study-card");
+
+    var name = el("div","study-name", course.code);
+    name.appendChild(el("span",null, course.name));
+    card.appendChild(name);
+
+    var arc = null, needle = null, label;
+
+    if(course.goalMin){
+      var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 160 98");
+      svg.setAttribute("class","dial");
+      svg.setAttribute("aria-hidden","true");
+      svg.innerHTML = dialMarkup(course.code);
+      card.appendChild(svg);
+      arc = svg.querySelector(".arc-val");
+      needle = svg.querySelector(".needle");
+      label = el("div","dial-label num");
+    } else {
+      label = el("div","study-nogoal");
+    }
+    card.appendChild(label);
+
+    var meta = el("div","study-meta");
+
+    function paintDial(){
+      if(course.goalMin){
+        var ratio = Math.min(course.loggedMin / course.goalMin, 1);
+        var col = ratio >= 1 ? "var(--status-green)" : ratio >= 0.5 ? "var(--status-amber)" : "var(--status-red)";
+        var LEN = 188.5;                       // π × r, r = 60
+        arc.setAttribute("stroke", col);
+        arc.setAttribute("stroke-dasharray", (LEN * ratio) + " " + LEN);
+        needle.style.transform = "rotate(" + (ratio * 180 - 90) + "deg)";
+        label.textContent = fmtHours(course.loggedMin) + " ";
+        label.appendChild(el("span",null,"/ " + fmtHours(course.goalMin)));
+      } else {
+        label.textContent = "logged " + fmtHours(course.loggedMin) + " this week · no weekly goal";
+      }
+    }
+
+    /* quick-log — one tap, undo toast, never a timer */
+    var q = el("div","quicklog");
+    [["+30m",30],["+1h",60],["+90m",90]].forEach(function(pair){
+      var b = el("button","qbtn", pair[0]);
+      b.type = "button";
+      b.addEventListener("click", function(){ logMinutes(pair[1], pair[0].replace("+","")); });
+      q.appendChild(b);
+    });
+    var mins = el("input","qmins");
+    mins.type = "number"; mins.min = "1"; mins.placeholder = "min";
+    mins.setAttribute("aria-label","Custom minutes for " + course.code);
+    mins.addEventListener("keydown", function(e){
+      if(e.key !== "Enter") return;
+      e.preventDefault();
+      var v = parseInt(mins.value, 10);
+      if(!v || v < 1) return;
+      mins.value = "";
+      logMinutes(v, v + "m");
+    });
+    q.appendChild(mins);
+    card.appendChild(q);
+    card.appendChild(meta);
+
+    function logMinutes(m, label_){
+      course.loggedMin += m;
+      paintDial(); paintMeta(); renderStudyLine();
+      toast("Logged " + label_ + " on " + course.code, function(){
+        course.loggedMin -= m;
+        paintDial(); paintMeta(); renderStudyLine();
+      });
+    }
+
+    function paintMeta(){
+      meta.textContent = "";
+      meta.appendChild(el("span",null,"priority"));
+
+      var st = el("div","stepper");
+      var minus = el("button",null,"−"); minus.type = "button"; minus.setAttribute("aria-label","Lower priority for " + course.code);
+      var val   = el("span","num", String(course.priority));
+      var plus  = el("button",null,"+"); plus.type = "button"; plus.setAttribute("aria-label","Raise priority for " + course.code);
+      minus.addEventListener("click", function(){ course.priority = Math.max(1, course.priority-1); paintMeta(); });
+      plus .addEventListener("click", function(){ course.priority = Math.min(3, course.priority+1); paintMeta(); });
+      st.appendChild(minus); st.appendChild(val); st.appendChild(plus);
+      meta.appendChild(st);
+
+      var goalWrap = el("div","study-goal");
+      goalWrap.appendChild(el("span",null,"· goal"));
+      var goal = el("input","goal-input num");
+      goal.type = "number"; goal.min = "0"; goal.step = "0.5";
+      goal.value = course.goalMin ? String(course.goalMin/60) : "";
+      goal.placeholder = "—";
+      goal.setAttribute("aria-label","Weekly goal hours for " + course.code);
+      goal.addEventListener("change", function(){
+        var h = parseFloat(goal.value);
+        course.goalMin = (!h || h <= 0) ? null : Math.round(h*60);
+        renderStudyLine();
+        stack[stack.length-1] = { type:"study", id:null, source:stack[stack.length-1].source };
+        paint(false);                          // a goal appearing/vanishing changes the card
+      });
+      goalWrap.appendChild(goal);
+      goalWrap.appendChild(el("span",null,"h"));
+      meta.appendChild(goalWrap);
+    }
+
+    paintDial(); paintMeta();
+    grid.appendChild(card);
+  });
+}
+
+/* Semicircular gauge: inset track groove, tinted value arc, goal tick, raised needle. */
+function dialMarkup(code){
+  var id = "d" + code.replace(/\W/g,"");
+  var ARC = "M20 80 A60 60 0 0 1 140 80";
+  return ''
+  + '<defs>'
+  +   '<filter id="b'+id+'" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.7"/></filter>'
+  +   '<mask id="m'+id+'"><path d="'+ARC+'" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/></mask>'
+  +   '<filter id="h'+id+'" x="-70%" y="-70%" width="240%" height="240%">'
+  +     '<feDropShadow dx="1.4" dy="1.4" stdDeviation="1.3" flood-color="rgba(163,177,198,0.85)"/>'
+  +     '<feDropShadow dx="-1.2" dy="-1.2" stdDeviation="1.1" flood-color="#FFFFFF"/>'
+  +   '</filter>'
+  + '</defs>'
+  + '<g mask="url(#m'+id+')">'
+  +   '<path d="'+ARC+'" fill="none" stroke="#E4E8EE" stroke-width="15"/>'
+  +   '<path d="'+ARC+'" fill="none" stroke="rgba(163,177,198,0.8)" stroke-width="6" transform="translate(-2,-2)" filter="url(#b'+id+')"/>'
+  +   '<path d="'+ARC+'" fill="none" stroke="#FFFFFF" stroke-width="6" transform="translate(2.4,2.4)" filter="url(#b'+id+')"/>'
+  + '</g>'
+  + '<path class="arc-val" d="'+ARC+'" fill="none" stroke="#3E9B6B" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 188.5" opacity="0.55"/>'
+  + '<line x1="140" y1="80" x2="150" y2="80" stroke="#5B6472" stroke-width="2" stroke-linecap="round"/>'
+  + '<g class="needle">'
+  +   '<line x1="80" y1="80" x2="80" y2="31" stroke="rgba(163,177,198,0.8)" stroke-width="4" stroke-linecap="round" transform="translate(1.2,1.2)"/>'
+  +   '<line x1="80" y1="80" x2="80" y2="31" stroke="#F6F8FA" stroke-width="3.4" stroke-linecap="round" transform="translate(-0.9,-0.9)"/>'
+  +   '<line x1="80" y1="80" x2="80" y2="31" stroke="#7C8798" stroke-width="2.2" stroke-linecap="round"/>'
+  + '</g>'
+  + '<circle cx="80" cy="80" r="7" fill="#EDF0F4" filter="url(#h'+id+')"/>'
+  + '<circle cx="80" cy="80" r="3" fill="#8B95A5"/>';
+}
+
+/* ============================================================
+   BUTTONS + TOAST
+   ============================================================ */
+function button(label, extra, fn){
+  var b = el("button","btn" + (extra ? " " + extra : ""), label);
+  b.type = "button";
+  b.addEventListener("click", fn);
+  return b;
+}
+/* Destruction confirms inline; everything else commits instantly. */
+function confirmButton(label, confirmLabel, fn){
+  var b = el("button","btn btn-danger", label);
+  b.type = "button";
+  var armed = false, timer = null;
+  b.addEventListener("click", function(){
+    if(!armed){
+      armed = true;
+      b.textContent = confirmLabel;
+      b.classList.add("is-confirming");
+      timer = setTimeout(function(){
+        armed = false; b.textContent = label; b.classList.remove("is-confirming");
+      }, 4000);
+      return;
+    }
+    clearTimeout(timer);
+    fn();
+  });
+  return b;
+}
+
+var toastEl = $("#toast"), toastMsg = $("#toast-msg"), toastUndo = $("#toast-undo"), toastTimer = null;
+function toast(msg, undo){
+  toastMsg.textContent = msg;
+  toastUndo.hidden = !undo;
+  toastUndo.onclick = function(){ if(undo) undo(); hideToast(); };
+  toastEl.classList.add("is-on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 4500);
+}
+function hideToast(){ toastEl.classList.remove("is-on"); clearTimeout(toastTimer); }
+
+/* ============================================================
+   TRIGGERS + ROUTES
+   ============================================================ */
+var dlPanel = $("#deadlines-panel");
+dlPanel.addEventListener("click", function(){ open("deadlines", null, dlPanel); });
+dlPanel.addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open("deadlines", null, dlPanel); }
+});
+
+$("#stalled-line").addEventListener("click", function(){
+  this.setAttribute("aria-expanded", this.getAttribute("aria-expanded") === "true" ? "false" : "true");
+  renderStalled();
+});
+
+// hero dials: each panel opens its full screen; Replay re-rolls the counter
+var heroStudy = $("#hero-study");
+heroStudy.addEventListener("click", function(){ open("study", null, heroStudy); });
+heroStudy.addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open("study", null, heroStudy); }
+});
+
+var heroWins = $("#hero-wins");
+heroWins.addEventListener("click", function(e){
+  if(e.target.closest("#hero-replay")) return;       // Replay handled below
+  open("wins", null, heroWins);
+});
+heroWins.addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open("wins", null, heroWins); }
+});
+$("#hero-replay").addEventListener("click", function(e){
+  e.stopPropagation();
+  if(heroFlaps) heroFlaps.roll();
+});
+
+// left-off card: click / Enter to edit in place
+var leftoffCard = $("#leftoff");
+leftoffCard.addEventListener("click", editLeftOff);
+leftoffCard.addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); editLeftOff(); }
+});
+
+var ROUTES = { dash:"#page-dash", settings:"#page-settings", login:"#page-login" };
+function go(route){
+  closeAll();
+  Object.keys(ROUTES).forEach(function(k){ $(ROUTES[k]).hidden = (k !== route); });
+  $("#topbar").hidden = (route === "login");
+  if(route === "login") renderLogin();
+  if(route === "settings") renderGymDays();
+  window.scrollTo(0,0);
+}
+document.addEventListener("click", function(e){
+  var nav = e.target.closest("[data-nav]");
+  if(nav){ go(nav.getAttribute("data-nav")); return; }
+  var t = e.target.closest("[data-toast]");
+  if(t) toast(t.getAttribute("data-toast"));
+});
+
+/* LoginPage — wordmark, email, Send link, "Check your email". Nothing else. */
+function renderLogin(){
+  var panel = $("#login-panel");
+  panel.textContent = "";
+  panel.appendChild(el("div","login-mark","homeroom"));
+
+  var input = el("input","set-input");
+  input.type = "email"; input.placeholder = "jeffrey@colorado.edu"; input.autocomplete = "email";
+  input.setAttribute("aria-label","Email address");
+  panel.appendChild(input);
+
+  var send = el("button","btn btn-hero btn-block","Send link");
+  send.type = "button";
+  send.addEventListener("click", function(){
+    panel.textContent = "";
+    panel.appendChild(el("div","login-mark","homeroom"));
+    panel.appendChild(el("p","login-msg","Check your email. The link works for 15 minutes."));
+    panel.appendChild(mockNote());
+  });
+  panel.appendChild(send);
+  panel.appendChild(mockNote());
+}
+function mockNote(){
+  var p = el("p","login-note");
+  var b = el("button",null,"skip to the dashboard");
+  b.type = "button"; b.setAttribute("data-nav","dash");
+  p.appendChild(document.createTextNode("Mockup — "));
+  p.appendChild(b);
+  return p;
+}
+
+renderDash();
+setTimeout(heroRollOnce, 350);   // the counter greets you once on load
+})();
+</script>
+</body>
+</html>
