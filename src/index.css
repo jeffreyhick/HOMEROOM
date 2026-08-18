@@ -57,3 +57,786 @@ button {
   outline-offset: 3px;
   border-radius: 4px;
 }
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* panels — large and few (design.md §zones) */
+.panel {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--raised);
+  padding: 20px 22px;
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.panel-title {
+  font-size: var(--t-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+.panel-hint {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+/* rows — for reading. zero buttons; detail lives behind a click (design.md §drawer-actions) */
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 8px -10px -6px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 10px;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  transition: box-shadow 150ms var(--ease);
+}
+.row:hover {
+  box-shadow: var(--inset-sm);
+}
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px 8px;
+  flex-wrap: wrap;
+}
+.row-text {
+  font-size: var(--t-row);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.row-kicker {
+  font-size: var(--t-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+.row-meta {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  flex: none;
+  text-align: right;
+}
+.empty {
+  font-size: var(--t-row);
+  color: var(--text-secondary);
+  padding: 12px 0 2px;
+  margin: 0;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+.dot-red {
+  background: var(--status-red);
+}
+.dot-amber {
+  background: var(--status-amber);
+}
+.dot-green {
+  background: var(--status-green);
+}
+.dot-none {
+  background: transparent;
+}
+
+/* commitments — desktop card grid, 2 per row inside the 720px column */
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  margin-top: 14px;
+}
+.ccard {
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  box-shadow: var(--raised-sm);
+  padding: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 86px;
+  transition: box-shadow 160ms var(--ease), transform 160ms var(--ease);
+}
+.ccard:hover {
+  box-shadow: var(--raised);
+  transform: translateY(-1px);
+}
+.ccard:active {
+  box-shadow: var(--inset-sm);
+  transform: none;
+}
+.ccard-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ccard-name {
+  font-size: var(--t-row);
+  font-weight: 500;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.ccard-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+/* quiet single lines (stalled) + chips */
+.qline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 22px;
+  min-height: 46px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--raised-sm);
+  font-size: var(--t-row);
+  color: var(--text-secondary);
+  transition: box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.qline:hover {
+  box-shadow: var(--raised);
+  color: var(--text-primary);
+}
+.qline strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.qline .chev {
+  color: var(--accent);
+  font-size: var(--t-meta);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 10px 22px 2px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  min-height: 38px;
+  border-radius: 999px;
+  box-shadow: var(--raised-sm);
+  font-size: var(--t-meta);
+  color: var(--text-primary);
+  transition: box-shadow 150ms var(--ease);
+}
+.chip:hover {
+  box-shadow: var(--raised);
+}
+.chip .num {
+  color: var(--text-secondary);
+}
+
+/* class identity: colour + icon (design.md §identity) — a bounded glyph, never a row tint */
+.tag {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--raised-sm);
+  color: var(--tag-color, var(--text-secondary));
+}
+.tag svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.tag-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+.tag-sm svg {
+  width: 13px;
+  height: 13px;
+}
+.tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tag-color) 40%, transparent);
+  pointer-events: none;
+}
+
+/* left-off card (design.md §leftoff) — inset, not raised; a note in the page, not a card on it */
+.leftoff {
+  border-radius: var(--r-lg);
+  box-shadow: var(--inset);
+  background: var(--surface);
+  padding: 15px 18px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  cursor: text;
+  transition: box-shadow 150ms var(--ease);
+}
+.leftoff:hover {
+  box-shadow: var(--inset), 0 0 0 2px rgba(61, 90, 128, 0.14);
+}
+.leftoff-mark {
+  color: var(--accent);
+  flex: none;
+  margin-top: 1px;
+}
+.leftoff-mark svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+.leftoff-body {
+  flex: 1;
+  min-width: 0;
+}
+.leftoff-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+.leftoff-text {
+  font-size: var(--t-row);
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+.leftoff-text.is-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.leftoff-when {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.leftoff-edit {
+  width: 100%;
+  border: 0;
+  resize: vertical;
+  min-height: 52px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset-sm);
+  padding: 10px 12px;
+  font-size: var(--t-row);
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+.leftoff-edit:focus {
+  outline: none;
+  box-shadow: var(--inset-sm), 0 0 0 2px rgba(61, 90, 128, 0.35);
+}
+
+/* ============================================================
+   OVERLAY — expand-in-place morph / phone bottom sheet (design.md §expanded)
+   ============================================================ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(29, 37, 48, 0.18);
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+.backdrop.is-on {
+  opacity: 1;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.xpanel {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  max-height: 85vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--raised-lift);
+  padding: 26px 30px 24px;
+  transform-origin: top left;
+}
+.xpanel-inner {
+  transition: opacity 140ms var(--ease);
+}
+.xclose {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--raised-sm);
+  color: var(--text-secondary);
+  transition: box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.xclose:hover {
+  color: var(--text-primary);
+}
+.xclose:active {
+  box-shadow: var(--inset-sm);
+}
+.xhead {
+  padding-right: 44px;
+}
+.xtitle {
+  font-size: var(--t-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+.xsub {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+}
+.xmeta {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  box-shadow: var(--inset-sm);
+  color: var(--text-secondary);
+}
+.pill.is-red {
+  color: var(--status-red);
+}
+.pill.is-amber {
+  color: var(--status-amber);
+}
+.pill.is-green {
+  color: var(--status-green);
+}
+.xsection {
+  margin-top: 24px;
+}
+.xlabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 11px;
+}
+.xtext {
+  font-size: var(--t-row);
+  margin: 0;
+  max-width: 62ch;
+}
+.xfoot {
+  margin-top: 24px;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+/* progress groove — derived only, no manual control anywhere */
+.groove-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.groove {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  box-shadow: var(--inset-sm);
+  overflow: hidden;
+}
+.groove-fill {
+  height: 100%;
+  border-radius: 999px;
+  opacity: 0.62;
+  transition: width 220ms var(--ease), background-color 220ms var(--ease);
+}
+.groove-label {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex: none;
+}
+
+.field {
+  width: 100%;
+  border: 0;
+  resize: vertical;
+  min-height: 78px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset);
+  padding: 13px 15px;
+  font-size: var(--t-row);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.field::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+.field:focus {
+  outline: none;
+  box-shadow: var(--inset), 0 0 0 2px rgba(61, 90, 128, 0.35);
+}
+
+/* subtasks */
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  transition: box-shadow 150ms var(--ease);
+}
+.check:hover {
+  box-shadow: var(--inset-sm);
+}
+.check-box {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 8px;
+  box-shadow: var(--raised-sm);
+  display: grid;
+  place-items: center;
+  color: transparent;
+  transition: box-shadow 160ms var(--ease), color 160ms var(--ease);
+}
+.check-box svg {
+  width: 13px;
+  height: 13px;
+}
+.check.is-done .check-box {
+  box-shadow: var(--inset-sm);
+  color: var(--status-green);
+}
+.check-title {
+  flex: 1;
+  text-align: left;
+  font-size: var(--t-row);
+}
+.check.is-done .check-title {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+.check-del {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 150ms var(--ease), box-shadow 150ms var(--ease), color 150ms var(--ease);
+}
+.check:hover .check-del,
+.check-del:focus-visible {
+  opacity: 1;
+}
+.check-del:hover {
+  box-shadow: var(--inset-sm);
+  color: var(--status-red);
+}
+
+.addrow {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.addrow input {
+  flex: 1;
+  border: 0;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset-sm);
+  padding: 11px 14px;
+  min-height: 44px;
+  font-size: var(--t-row);
+}
+.addrow input::placeholder {
+  color: var(--text-secondary);
+}
+.addrow input:focus {
+  outline: none;
+  box-shadow: var(--inset-sm), 0 0 0 2px rgba(61, 90, 128, 0.35);
+}
+.qmins {
+  border: 0;
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: var(--inset-sm);
+  padding: 8px 10px;
+  min-height: 40px;
+  font-size: var(--t-meta);
+  text-align: center;
+}
+.qmins:focus {
+  outline: none;
+  box-shadow: var(--inset-sm), 0 0 0 2px rgba(61, 90, 128, 0.35);
+}
+.study-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.study-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.goal-input {
+  width: 54px;
+  border: 0;
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--inset-sm);
+  padding: 5px 6px;
+  text-align: center;
+  font-size: var(--t-meta);
+}
+.goal-input:focus {
+  outline: none;
+  box-shadow: var(--inset-sm), 0 0 0 2px rgba(61, 90, 128, 0.35);
+}
+
+/* append-only log */
+.logs {
+  display: flex;
+  flex-direction: column;
+}
+.log {
+  display: flex;
+  gap: 14px;
+  font-size: var(--t-meta);
+  padding: 5px 0;
+}
+.log-when {
+  color: var(--text-secondary);
+  flex: none;
+  width: 74px;
+}
+.log-note {
+  color: var(--text-primary);
+}
+
+/* actions — exist only inside a detail view (design.md §drawer-actions) */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  align-items: center;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(163, 177, 198, 0.28);
+}
+.btn {
+  border-radius: var(--r-sm);
+  padding: 11px 18px;
+  min-height: 44px;
+  box-shadow: var(--raised-sm);
+  font-size: var(--t-row);
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: box-shadow 150ms var(--ease), color 150ms var(--ease), transform 150ms var(--ease);
+}
+.btn:hover {
+  color: var(--text-primary);
+  box-shadow: var(--raised);
+}
+.btn:active {
+  box-shadow: var(--inset-sm);
+  transform: translateY(1px);
+}
+.btn-hero {
+  color: var(--accent);
+  font-weight: 600;
+}
+.btn-hero:hover {
+  color: var(--accent);
+}
+.btn-danger:hover {
+  color: var(--status-red);
+}
+.btn.is-confirming {
+  color: var(--status-red);
+  font-weight: 600;
+  box-shadow: var(--inset-sm);
+}
+.spacer {
+  flex: 1;
+}
+
+/* toast — bottom-center, one action (design.md §drawer-actions) */
+.toast {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 26px;
+  transform: translate(-50%, 14px);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  box-shadow: var(--raised);
+  padding: 12px 16px;
+  font-size: var(--t-meta);
+  opacity: 0;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+}
+.toast.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.toast button {
+  color: var(--accent);
+  font-weight: 600;
+  flex: none;
+}
+.toast button[hidden] {
+  display: none;
+}
+
+/* ============================================================
+   PHONE — same column; commitments become chips; sheet from bottom
+   ============================================================ */
+@media (max-width: 767px) {
+  .panel {
+    padding: 18px 16px;
+  }
+  .qline {
+    padding: 13px 16px;
+  }
+  .chips {
+    padding: 10px 16px 2px;
+  }
+  .row {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .row-main {
+    flex: 1 1 130px;
+  }
+  .row-meta {
+    margin-left: auto;
+  }
+
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+  .ccard {
+    min-height: 38px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--raised-sm);
+  }
+  .ccard-name {
+    font-size: var(--t-meta);
+  }
+  .ccard-foot {
+    margin: 0;
+    gap: 6px;
+  }
+  .ccard:hover {
+    transform: none;
+  }
+
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .xpanel {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding: 22px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+  .actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+@media (min-width: 768px) {
+  .ccard-sep {
+    display: none;
+  }
+}
