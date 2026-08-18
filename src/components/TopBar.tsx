@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export function TopBar({ syncStatus }: { syncStatus?: string }) {
+export function TopBar({ syncStatus, syncFailed = false }: { syncStatus?: string; syncFailed?: boolean }) {
   return (
     <div className="h-14 flex items-center justify-between gap-4 max-w-[720px] mx-auto px-5">
       <Link to="/" className="text-[17px] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
@@ -8,7 +8,10 @@ export function TopBar({ syncStatus }: { syncStatus?: string }) {
       </Link>
       <div className="flex items-center gap-3.5">
         {syncStatus && (
-          <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          <span
+            className="text-[13px]"
+            style={{ color: syncFailed ? 'var(--status-amber)' : 'var(--text-secondary)' }}
+          >
             {syncStatus}
           </span>
         )}

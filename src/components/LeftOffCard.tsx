@@ -1,23 +1,31 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import { useSettings } from '@/features/settings/useSettings'
 import { daysAgo } from '@/lib/format'
+import type { SettingsPatch } from '@/types/domain'
+
+interface LeftOffCardProps {
+  now: Date
+  note: string | null
+  notedAt: string | null
+  onSave: (patch: SettingsPatch) => Promise<unknown>
+}
 
 // Inset "where you stopped" note (design.md §leftoff) — one global note,
 // autosaves on blur. Never a card; empty state is a single italic line.
-export function LeftOffCard({ now }: { now: Date }) {
-  const { settings, update } = useSettings()
+// Presentational on purpose: the page owns the settings row so the dashboard
+// fetches it once rather than once per component that reads it.
+export function LeftOffCard({ now, note, notedAt, onSave }: LeftOffCardProps) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
 
   useEffect(() => {
-    if (settings) setValue(settings.left_off_note ?? '')
-  }, [settings])
+    setValue(note ?? '')
+  }, [note])
 
   async function handleBlur() {
     const trimmed = value.trim()
     setEditing(false)
-    if (trimmed === (settings?.left_off_note ?? '')) return
-    await update({
+    if (trimmed === (note ?? '')) return
+    await onSave({
       left_off_note: trimmed || null,
       left_off_at: trimmed ? new Date().toISOString() : null,
     })
@@ -25,14 +33,13 @@ export function LeftOffCard({ now }: { now: Date }) {
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Escape') {
-      setValue(settings?.left_off_note ?? '')
+      setValue(note ?? '')
       setEditing(false)
     }
   }
 
-  const note = settings?.left_off_note ?? null
-  const whenLabel = settings?.left_off_at
-    ? `noted ${daysAgo(settings.left_off_at, now) <= 0 ? 'today' : `${daysAgo(settings.left_off_at, now)}d ago`}`
+  const whenLabel = notedAt
+    ? `noted ${daysAgo(notedAt, now) <= 0 ? 'today' : `${daysAgo(notedAt, now)}d ago`}`
     : null
 
   return (

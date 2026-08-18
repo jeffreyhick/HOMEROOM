@@ -29,6 +29,22 @@ export function commitmentTier(c: Commitment, now: Date): 'red' | 'amber' | 'gre
   return 'green'
 }
 
+/**
+ * The dot beside a deadline row. Ported from the mockup's `assignmentStatus`: red once
+ * missed, amber inside two days, amber again when a deadline inside the week has gone
+ * untouched past the stale threshold. `null` means no dot — most rows earn none, which
+ * is what keeps the ones that do meaningful.
+ */
+export function assignmentTier(a: Assignment, staleDeadlineDays: number, now: Date): 'red' | 'amber' | null {
+  if (a.status !== 'upcoming') return null
+  const hoursUntilDue = (new Date(a.due_at).getTime() - now.getTime()) / HOUR_MS
+  if (hoursUntilDue < 0) return 'red'
+  if (hoursUntilDue <= 48) return 'amber'
+  const touchedDays = (now.getTime() - new Date(a.last_touched_at ?? a.first_seen_at).getTime()) / DAY_MS
+  if (touchedDays > staleDeadlineDays && hoursUntilDue <= 168) return 'amber'
+  return null
+}
+
 export function assignmentScore(
   a: Assignment,
   staleDeadlineDays: number,

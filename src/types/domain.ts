@@ -55,7 +55,12 @@ export interface PendingAction {
 export interface Settings {
   id: boolean;
   user_id: string;
-  canvas_ics_url: string | null;
+  /**
+   * Generated in the database from `canvas_ics_url`. The URL itself is a capability
+   * secret and is never selected into the browser — the Settings field is write-only
+   * and this flag is all the UI needs to render "set ✓".
+   */
+  canvas_ics_url_set: boolean;
   notify_email: string | null;
   digest_hour_local: number;
   deadline_alert_hours: number;
@@ -64,6 +69,11 @@ export interface Settings {
   left_off_note: string | null;
   left_off_at: string | null;
 }
+
+/** What the Settings form may write. `canvas_ics_url` is write-only: never read back. */
+export type SettingsPatch = Partial<
+  Omit<Settings, 'id' | 'user_id' | 'canvas_ics_url_set'> & { canvas_ics_url: string | null }
+>;
 
 export type AssignmentStatus = 'upcoming' | 'done' | 'dismissed';
 
@@ -79,6 +89,16 @@ export interface Assignment {
   last_touched_at: string | null;
   first_seen_at: string;
   last_synced_at: string;
+}
+
+export interface Course {
+  id: string;
+  user_id: string;
+  code: string;
+  /** Class-identity colour from the design.md §identity palette. Never a status hue. */
+  color: string;
+  /** Key into the shared ICONS map. Inline SVG, never emoji. */
+  icon: string;
 }
 
 export type AttentionItem =

@@ -2,7 +2,9 @@
 
 **Working title:** Homeroom (rename freely — nothing depends on the name yet).
 **Owner/only user:** Jeffrey.
-**Status:** Planning. No repo exists yet. These docs are the pre-build source of truth.
+**Status:** Building. Phases 0–2 are written (auth shell, commitments core, Canvas sync);
+Phase 3 (emails) is next. See [implementation-plan.md](implementation-plan.md) for what each
+phase contains and [verification.md](verification.md) for the checks that need a live database.
 
 ---
 
@@ -61,12 +63,13 @@ so the system works even when Jeffrey doesn't open it. That is the core design c
 | [schema.md](schema.md) | Database schema, RLS, and the ranking/momentum formulas. |
 | [design.md](design.md) | Neumorphic light UI spec, app structure (pages/navbar/drawers), design tokens, progressive-disclosure rules. |
 | [coding-standards.md](coding-standards.md) | One-role-per-file contract (repo / hook / UI) with smell tests. |
+| [verification.md](verification.md) | The human half of each phase checklist — copy-pasteable SQL and click-throughs that need a live Supabase project. |
 | **`mockup-dashboard-v3.html`** | **The visual target** — double-click to open in a browser (self-contained, no server). Working implementation of every screen: coloured status bar, hero dial strip, class colour/icon identity, countdowns, celebrations, gym strip, deadline windows, Study + Wins. **Port its CSS when building UI** — see design.md's fidelity contract. `-v2` (morph baseline) and `mockup-dashboard.html` (v1) are kept for history. Nothing persists in any mockup; reload resets. |
 
 ## Open Decisions (do not guess — ask Jeffrey)
 
 | Question | When it matters |
 |---|---|
-| Final app name | Before creating the repo (repo name, email sender name) |
+| Final app name | Repo is `HOMEROOM` and the wordmark is "homeroom"; still open for the email sender name (Phase 3) |
 | Resend sending domain: use resend.dev shared domain or a personal domain? | Phase 3 (emails land in inbox vs. spam folder) |
 | Exact per-commitment cadence defaults (how many days of no progress = "going stale") | Phase 1; default proposal is in schema.md |

@@ -260,6 +260,14 @@ too). `SettingsForm`: notify email, digest hour (0–23), stale threshold days, 
 **write-only** field — shows `Canvas feed: set ✓` when present, never echoes the stored value;
 typing a new one overwrites.
 
+**Write-only means the value never reaches the browser at all**, not just that the input is
+blank. Two things enforce that: `0003` adds a generated column
+`settings.canvas_ics_url_set boolean` (`canvas_ics_url is not null and length(…) > 0`), and
+`getSettings()` selects an **explicit column list** that omits `canvas_ics_url`. A `select('*')`
+here would ship the feed secret on every dashboard load. The write side takes a
+`SettingsPatch`, which allows `canvas_ics_url` in and never reads it back; saving other
+fields omits the key entirely so an existing feed can't be blanked by accident.
+
 ### 2.5 🤖 Assignments feature + dashboard wiring
 `assignments.repo.ts`: `listAssignments()` (status `upcoming` or done/dismissed within last 7 days;
 order `due_at` asc), `markDone(id)`, `dismiss(id)`, `reopen(id)`,
@@ -280,18 +288,38 @@ Two v3 components land here, both ported from the mockup:
 Assignment rows render `ClassTag` + a course kicker tinted with the course's `color`.
 
 ### 2.6 🤖 Migration `0005_cron.sql` — hourly sync (see also 3.3)
-Enable `pg_cron` + `pg_net`. Schedule at minute 5:
+Enable `pg_cron` + `pg_net`. Schedule at minute 5.
+
+The project URL and cron secret are read from **Vault at job run time**, never written
+into the migration. That keeps the secret out of git *and* leaves the file safe to apply
+with `supabase db push` as-is — a migration carrying `<PLACEHOLDER>` text would abort the
+push and block every later migration behind it.
+
 ```sql
-select cron.schedule('sync-canvas-hourly', '5 * * * *',
-  $$ select net.http_post(
-       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/sync-canvas',
-       headers := '{"Content-Type":"application/json","x-cron-secret":"<CRON_SECRET>"}'::jsonb,
-       body := '{}'::jsonb) $$);
+select cron.schedule('sync-canvas-hourly', '5 * * * *', $job$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url')
+           || '/functions/v1/sync-canvas',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    body := '{}'::jsonb);
+$job$);
 ```
-🧑 Jeffrey supplies `<PROJECT_REF>`; generate `CRON_SECRET` (`openssl rand -hex 32`), set it as a
-function secret (`supabase secrets set CRON_SECRET=…`), and substitute into the migration
-**at push time** — the migration file in git keeps the placeholder, real value applied via
-`psql`/SQL editor. The secret never lands in git.
+
+🧑 Jeffrey creates the two Vault secrets once from the SQL editor and sets the matching
+function secret, so the job and the function agree on the same value:
+
+```sql
+select vault.create_secret('https://<PROJECT_REF>.supabase.co', 'project_url');
+select vault.create_secret('<openssl rand -hex 32>',            'cron_secret');
+```
+```bash
+supabase secrets set CRON_SECRET=<the same random value>
+```
+
+The migration is idempotent (it unschedules an existing job of the same name first).
+Until both Vault secrets exist the job is scheduled but its run fails harmlessly —
+the dashboard keeps rendering stored rows regardless.
 
 ### ✅ Phase 2 checklist
 - [ ] Real assignments render with correct course/title and Denver-local due times
