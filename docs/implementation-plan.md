@@ -71,7 +71,7 @@ src/
     │                   # CourseDial.tsx, CumulativeStudyDial.tsx         (Phase 5)
     └── settings/       # settings.repo.ts, useSettings.ts, SettingsForm.tsx
 supabase/
-├── migrations/         # 0001_settings.sql … 0007_study.sql (schema.md is the DDL spec)
+├── migrations/         # 0001_settings.sql … 0008_study.sql (0004 is skipped; schema.md is the DDL spec)
 └── functions/
     ├── sync-canvas/index.ts
     └── send-reminders/index.ts
@@ -340,11 +340,20 @@ Create account → API key → `supabase secrets set RESEND_API_KEY=…`. Decide
 `onboarding@resend.dev` works but may spam-fold; a personal domain is the fix if so (open
 decision). Set `notify_email` in Settings.
 
-### 3.2 🤖 Migration `0004_reminders.sql`
+### 3.2 🤖 Migration `0006_reminders.sql`
 `reminders_sent` per schema.md; unique constraint on `dedupe_key`; RLS.
 
+**Numbered 0006, not 0004.** `0005` was already applied to the remote database at the end
+of Phase 2, and `supabase db push` refuses a local migration that sorts *before* the last
+applied one — it demands `--include-all`. Keeping the numbers strictly increasing keeps
+every future push a plain `db push`. `0004` is simply never used, and Phase 4/5 shift to
+`0007_gym.sql` and `0008_study.sql`.
+
 ### 3.3 🤖 Edge Function `send-reminders` (service role; same auth gate as sync-canvas)
-Runs hourly (add to `0005_cron.sql`, minute 10, same pattern). Order of operations is law:
+Runs hourly at minute 10 — ten minutes after the Canvas sync, so a deadline that arrived
+in this hour's feed can still raise its T-36h alert in the same hour. The job is scheduled
+**in `0006`, not by editing `0005`**: applied migrations are immutable, and changes are
+always a new file. Order of operations is law:
 **insert dedupe key first; on unique-violation skip; send email only after successful insert.**
 1. Load settings, assignments (`upcoming`), commitments, and today's Denver date via
    `Intl.DateTimeFormat('en-CA',{timeZone:'America/Denver'})` → `YYYY-MM-DD`.
@@ -356,10 +365,19 @@ Runs hourly (add to `0005_cron.sql`, minute 10, same pattern). Order of operatio
    on success compose sections — (a) overdue `upcoming` assignments; (b) due ≤7d with
    `last_touched_at` null-or-older than `stale_deadline_days`; (c) active commitments with
    `stalenessRatio ≥ 1` (port the formula — a tiny `_shared/attention.ts` in the functions dir
-   mirroring `src/lib/attention.ts`; keep the two files line-for-line comparable, Rule 7);
+   mirroring `src/lib/attention.ts`; keep the two files line-for-line comparable, Rule 7).
+   The duplication is **verified, not trusted**: `_shared/attention.test.ts` runs both the
+   client and server implementations over the same grid of cadences, importances, staleness
+   values, and statuses, and fails the build the moment they disagree;
    (d) stall pings: stalled commitments where `floor((now−stalled_at)/7d) = k ≥ 1` and
    `stall:<id>:<k>` inserts successfully. **All sections empty → delete the digest dedupe row
-   and send nothing.** Subject: `Homeroom — <n> behind, <m> due this week`.
+   and send nothing.** Subject: `Homeroom — <n> behind, <m> due in the next 7 days`
+   (the plan originally said "due this week"; the function counts a rolling seven days
+   rather than the status bar's Monday–Sunday week, and the subject says what it counts
+   instead of mirroring the week-bounds helper into the function runtime).
+   Section composition lives in a pure `_shared/digest.ts` — `buildDigest()` returns
+   `null` for a clean day — so the "silent when there is nothing to say" rule is unit
+   tested rather than discovered in a real inbox at 7am.
 4. Send via `fetch('https://api.resend.com/emails', …)`; non-2xx → log, leave dedupe row
    (better one missed email than spam-on-retry — deliberate).
 
@@ -398,7 +416,7 @@ programmatically (vitest on token pairs with a contrast function — not by eye)
 Then build the v3 layer that makes the app pleasant rather than purely a debt list. **Port each
 from `mockup-dashboard-v3.html`; do not improvise the CSS.**
 
-1. 🤖 Migration `0006_gym.sql`: `gym_checkins` per schema.md (unique `went_on` per user) + RLS.
+1. 🤖 Migration `0007_gym.sql`: `gym_checkins` per schema.md (unique `went_on` per user) + RLS.
 2. 🤖 **`GymStrip`** (design.md §gym) + the Settings day picker writing `settings.gym_days`.
    Tapping a pip toggles today's check-in — the one dashboard element with a direct action.
 3. 🤖 **`Celebration`** (design.md §celebration): the `checkpop` on checkboxes, the spark burst
@@ -445,7 +463,7 @@ of "I didn't check it / I didn't trust it / updating felt like work" and fix onl
 This is the only feature that adds a new recurring manual-logging habit; it is earned, not
 assumed. If the gate isn't met, skip — the app's #1 job (never miss a deadline) doesn't need it.
 
-1. 🤖 Migration `0007_study.sql`: **ALTER** `courses` (created in Phase 2 with identity columns)
+1. 🤖 Migration `0008_study.sql`: **ALTER** `courses` (created in Phase 2 with identity columns)
    to add `priority int default 2` + `weekly_goal_minutes int null`; CREATE `study_sessions` per
    schema.md, RLS. Do not re-create `courses`.
 2. 🤖 `sync-canvas` already inserts course rows (Phase 2); confirm new codes default to

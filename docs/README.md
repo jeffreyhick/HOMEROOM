@@ -2,8 +2,8 @@
 
 **Working title:** Homeroom (rename freely — nothing depends on the name yet).
 **Owner/only user:** Jeffrey.
-**Status:** Building. Phases 0–2 are written (auth shell, commitments core, Canvas sync);
-Phase 3 (emails) is next. See [implementation-plan.md](implementation-plan.md) for what each
+**Status:** Building. Phases 0–3 are written (auth shell, commitments core, Canvas sync,
+reminder emails); Phase 4 (ranking polish, celebration, gym, hero strip) is next. See [implementation-plan.md](implementation-plan.md) for what each
 phase contains and [verification.md](verification.md) for the checks that need a live database.
 
 ---

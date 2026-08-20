@@ -45,6 +45,15 @@ export function assignmentTier(a: Assignment, staleDeadlineDays: number, now: Da
   return null
 }
 
+/**
+ * A deadline nobody has touched recently. Drives the ×1.5 score multiplier here and
+ * section (b) of the nightly digest — both must agree, so it lives in one place.
+ */
+export function isDeadlineStale(a: Assignment, staleDeadlineDays: number, now: Date): boolean {
+  if (a.last_touched_at === null) return true
+  return (now.getTime() - new Date(a.last_touched_at).getTime()) / DAY_MS > staleDeadlineDays
+}
+
 export function assignmentScore(
   a: Assignment,
   staleDeadlineDays: number,
@@ -58,10 +67,7 @@ export function assignmentScore(
   const daysUntilDue = hoursUntilDue / 24
   let score = 100 / Math.max(daysUntilDue, 0.25)
 
-  const isStale =
-    a.last_touched_at === null ||
-    (now.getTime() - new Date(a.last_touched_at).getTime()) / DAY_MS > staleDeadlineDays
-  if (isStale && daysUntilDue <= 7) score *= 1.5
+  if (isDeadlineStale(a, staleDeadlineDays, now) && daysUntilDue <= 7) score *= 1.5
 
   return score
 }

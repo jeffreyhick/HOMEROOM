@@ -8,57 +8,22 @@
 // The feed URL is a capability secret — it grants read access to the whole Canvas
 // calendar — so it never leaves the server. The browser only ever invokes this
 // function; it never talks to Canvas.
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { adminClient, authorize, CORS, json } from '../_shared/http.ts'
 import { looksLikeExam, parseIcs } from './ics.ts'
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
 
 // design.md §identity — class colours deliberately avoid the status hues, so a course
 // glyph can never be misread as "on pace" / "behind".
 const PALETTE = ['#4257B2', '#B5642E', '#2C8C7C', '#2E6E9E', '#8E4585', '#6B4FA0', '#8A6D3B', '#5B7085']
 const ICON_CYCLE = ['zap', 'triangle', 'flame', 'wave', 'satellite', 'code', 'flask', 'book']
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  })
-}
-
-/** Constant-time compare so a wrong cron secret can't be recovered byte by byte. */
-function secretsMatch(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
-}
-
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const cronSecret = Deno.env.get('CRON_SECRET')
-
   // --- Auth gate, before anything else touches data ---
-  const headerSecret = req.headers.get('x-cron-secret')
-  const viaCron = Boolean(cronSecret && headerSecret && secretsMatch(headerSecret, cronSecret))
+  const caller = await authorize(req)
+  if (!caller) return json({ error: 'unauthorized' }, 401)
 
-  let callerId: string | null = null
-  if (!viaCron) {
-    const authHeader = req.headers.get('Authorization') ?? ''
-    if (!authHeader.startsWith('Bearer ')) return json({ error: 'unauthorized' }, 401)
-    const anon = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!)
-    const { data, error } = await anon.auth.getUser(authHeader.slice(7))
-    if (error || !data.user) return json({ error: 'unauthorized' }, 401)
-    callerId = data.user.id
-  }
-
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+  const admin = adminClient()
 
   const { data: settings, error: settingsError } = await admin
     .from('settings')
@@ -70,7 +35,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!settings) return json({ skipped: 'no settings row' })
 
   // A signed-in caller must be *the* user; any other valid JWT is not enough.
-  if (!viaCron && callerId !== settings.user_id) return json({ error: 'unauthorized' }, 401)
+  if (!caller.viaCron && caller.callerId !== settings.user_id) return json({ error: 'unauthorized' }, 401)
 
   if (!settings.canvas_ics_url) return json({ skipped: 'no url' })
 
