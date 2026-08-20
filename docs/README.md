@@ -2,8 +2,10 @@
 
 **Working title:** Homeroom (rename freely — nothing depends on the name yet).
 **Owner/only user:** Jeffrey.
-**Status:** Building. Phases 0–3 are written (auth shell, commitments core, Canvas sync,
-reminder emails); Phase 4 (ranking polish, celebration, gym, hero strip) is next. See [implementation-plan.md](implementation-plan.md) for what each
+**Status:** Building. Phases 0–4 are written (auth shell, commitments core, Canvas sync,
+reminder emails, the deadlines window / celebration / gym / hero strip). Next is the
+**dogfood week** — a week of real use, fixing friction and adding nothing. Phase 5 (courses
+and the study dial) stays gated on what that week turns up. See [implementation-plan.md](implementation-plan.md) for what each
 phase contains and [verification.md](verification.md) for the checks that need a live database.
 
 ---

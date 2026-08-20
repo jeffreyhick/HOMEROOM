@@ -101,6 +101,22 @@ export interface Course {
   icon: string;
 }
 
+export interface GymCheckin {
+  id: string;
+  user_id: string;
+  /** Denver-local date, `YYYY-MM-DD`. Unique per user — the pip is a pure toggle. */
+  went_on: string;
+  created_at: string;
+}
+
+/** The split-flap counter's number. Derived, never stored (schema.md). */
+export interface SemesterWins {
+  assignments: number;
+  subtasks: number;
+  gym: number;
+  total: number;
+}
+
 export type AttentionItem =
   | { kind: 'assignment'; score: number | 'overdue'; item: Assignment }
   | { kind: 'commitment'; score: number; item: Commitment };

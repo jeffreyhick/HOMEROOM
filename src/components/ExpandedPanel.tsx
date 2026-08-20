@@ -5,9 +5,14 @@ const SHEET_MS = 200
 
 interface ExpandedPanelProps {
   isOpen: boolean
+  /** Pop one level — the ✕ button and Esc. */
   onClose: () => void
+  /** Close the whole stack — the backdrop. Falls back to onClose when not given. */
+  onCloseAll?: () => void
   sourceEl: HTMLElement | null
   ariaLabel: string
+  /** How deep the detail stack is. A change while open cross-fades the inner content. */
+  depth?: number
   children: ReactNode
 }
 
@@ -21,13 +26,22 @@ function reducedMotion() {
 // Expand-in-place morph (desktop) / bottom sheet (phone), per design.md §expanded.
 // FLIP: render at final position, measure, apply the inverse transform back over the
 // source element's box, then transition to identity — never animate width/height directly.
-export function ExpandedPanel({ isOpen, onClose, sourceEl, ariaLabel, children }: ExpandedPanelProps) {
+export function ExpandedPanel({
+  isOpen,
+  onClose,
+  onCloseAll,
+  sourceEl,
+  ariaLabel,
+  depth = 1,
+  children,
+}: ExpandedPanelProps) {
   const [mounted, setMounted] = useState(isOpen)
   const panelRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const closingRef = useRef(false)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const lastDepth = useRef(depth)
 
   useLayoutEffect(() => {
     if (!isOpen) return
@@ -75,6 +89,19 @@ export function ExpandedPanel({ isOpen, onClose, sourceEl, ariaLabel, children }
     const focusTimer = setTimeout(() => closeRef.current?.focus(), 40)
     return () => clearTimeout(focusTimer)
   }, [isOpen, mounted, sourceEl])
+
+  useLayoutEffect(() => {
+    if (!mounted || depth === lastDepth.current) return
+    lastDepth.current = depth
+    const inner = innerRef.current
+    if (!inner || reducedMotion()) return
+    inner.style.transition = 'none'
+    inner.style.opacity = '0'
+    requestAnimationFrame(() => {
+      inner.style.transition = 'opacity 160ms var(--ease)'
+      inner.style.opacity = '1'
+    })
+  }, [depth, mounted])
 
   function finish() {
     setMounted(false)
@@ -130,14 +157,14 @@ export function ExpandedPanel({ isOpen, onClose, sourceEl, ariaLabel, children }
 
   return (
     <>
-      <div className="backdrop is-on" onClick={onClose} />
+      <div className="backdrop is-on" onClick={onCloseAll ?? onClose} />
       <div
         className="overlay"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         onClick={(e) => {
-          if (e.target === e.currentTarget) onClose()
+          if (e.target === e.currentTarget) (onCloseAll ?? onClose)()
         }}
       >
         <div className="xpanel" ref={panelRef}>

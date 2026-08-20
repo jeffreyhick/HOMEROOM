@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useGym } from '@/features/gym/useGym'
 import { useSettings } from './useSettings'
+
+const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 /**
  * The Canvas feed field is **write-only** (implementation-plan.md 2.4): the stored URL is
@@ -8,6 +11,7 @@ import { useSettings } from './useSettings'
  */
 export function SettingsForm() {
   const { settings, loading, update, syncNow } = useSettings()
+  const gym = useGym(new Date())
 
   const [notifyEmail, setNotifyEmail] = useState('')
   const [digestHour, setDigestHour] = useState(7)
@@ -38,6 +42,19 @@ export function SettingsForm() {
     setFeedUrl('')
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+  }
+
+  /**
+   * Dropping a target day also clears any check recorded for it this week (design.md
+   * §gym) — otherwise a green tick would sit on a day that is no longer a target, which
+   * reads as a bug.
+   */
+  async function toggleGymDay(index: number) {
+    const current = settings?.gym_days ?? []
+    const isTarget = current.includes(index)
+    const next = isTarget ? current.filter((d) => d !== index) : [...current, index].sort((a, b) => a - b)
+    await update({ gym_days: next })
+    if (isTarget && gym.done.has(gym.week[index])) await gym.toggle(gym.week[index])
   }
 
   async function handleSyncNow() {
@@ -98,6 +115,30 @@ export function SettingsForm() {
             days
           </label>
         </div>
+      </div>
+
+      <div className="xsection">
+        <div className="xlabel">Gym days</div>
+        <div className="gym-week" style={{ marginLeft: 0 }}>
+          {DAY_LABELS.map((label, index) => {
+            const isTarget = (settings?.gym_days ?? []).includes(index)
+            return (
+              <button
+                key={label}
+                type="button"
+                className={`pip${isTarget ? '' : ' pip-off'}`}
+                aria-pressed={isTarget}
+                aria-label={`${label} ${isTarget ? 'is' : 'is not'} a gym day`}
+                onClick={() => toggleGymDay(index)}
+              >
+                <span className="pip-day">{label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="panel-hint" style={{ marginTop: 8 }}>
+          Pick none to switch the habit off entirely — the strip disappears from the dashboard.
+        </p>
       </div>
 
       <div className="xsection">

@@ -484,9 +484,20 @@ arbitrary values or utilities — never a raw hex in a component file.
 | `--text-primary` | `#1D2530` | All primary text (AA on surface) |
 | `--text-secondary` | `#5B6472` | Meta text — the legal minimum lightness |
 | `--accent` | `#3D5A80` | Interactive affordances only |
-| `--status-red` / `--status-amber` / `--status-green` | `#D64545` / `#E09A2F` / `#3E9B6B` | Status dots, OVERDUE/countdown tiers, celebration ring — never row tints |
+| `--status-red` / `--status-amber` / `--status-green` | `#CE2D2D` / `#956316` / `#317A54` | Status dots, OVERDUE/countdown tiers, celebration ring — never row tints. **Darkened from the mockup's `#D64545`/`#E09A2F`/`#3E9B6B` to clear AA — see below.** |
 | Radius | 14px small / 20px panels | |
 | Type scale | 22px title / 15px row / 13px meta, Inter (or system-ui stack), tabular numerals for dates/counts | |
+
+**The status hues are the one place the app deliberately departs from the mockup.** All
+three are rendered as *text* — `OVERDUE`, `DUE TODAY`, `DUE TOMORROW`, `1 thing behind`,
+`on pace` — so WCAG AA's 4.5:1 applies, and the mockup's values did not clear it against
+`#EDF0F4`: red `3.83:1`, green `3.01:1`, and amber `2.08:1`, which fails even the 3:1
+floor for non-text indicators. The shipped values are the *minimum* hue- and
+saturation-preserving darkening that reaches 4.5:1, found by search rather than by eye.
+Amber moves the most and reads noticeably more bronze than the mockup's yellow; that is
+the cost of "due tomorrow" being legible. `src/lib/contrast.test.ts` parses these values
+straight out of `index.css` and fails the build if any of them drifts back under AA — so
+this is enforced, not merely recorded here.
 
 **Class-identity palette (v3, §identity)** — per-course/commitment `color` + `icon` are **data, not
 tokens**: they live in table columns (schema.md), not `index.css`. Draw from a set chosen to avoid

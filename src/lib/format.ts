@@ -56,3 +56,19 @@ export function denverWeekBounds(now: Date): { monday: string; sunday: string } 
   const monday = shiftYmd(today, -((dayOfWeek + 6) % 7))
   return { monday, sunday: shiftYmd(monday, 6) }
 }
+
+/**
+ * The seven Denver dates of the gym week, Sunday first.
+ *
+ * Deliberately a different week from `denverWeekBounds`: the study/status week is
+ * Monday–Sunday, but the gym strip renders `Su…Sa` pips (design.md §gym) and
+ * `settings.gym_days` indexes 0=Sun…6=Sat to match. Two different weeks, each matching
+ * what its own UI shows.
+ */
+export function denverGymWeek(now: Date): string[] {
+  const today = denverYmd(now)
+  const [y, m, d] = today.split('-').map(Number)
+  const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay() // 0 = Sunday
+  const sunday = shiftYmd(today, -dayOfWeek)
+  return Array.from({ length: 7 }, (_, i) => shiftYmd(sunday, i))
+}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 import { TopBar } from '@/components/TopBar'
 import { LeftOffCard } from '@/components/LeftOffCard'
 import { ExpandedPanel } from '@/components/ExpandedPanel'
@@ -6,13 +6,18 @@ import { StatusBar } from '@/components/StatusBar'
 import { NeedsAttentionList } from '@/features/attention/NeedsAttentionList'
 import { AssignmentExpanded } from '@/features/assignments/AssignmentExpanded'
 import { DeadlineList } from '@/features/assignments/DeadlineList'
+import { DeadlinesExpanded } from '@/features/assignments/DeadlinesExpanded'
 import { useAssignments } from '@/features/assignments/useAssignments'
 import { CommitmentCards } from '@/features/commitments/CommitmentCards'
 import { CommitmentExpanded } from '@/features/commitments/CommitmentExpanded'
 import { StalledLine } from '@/features/commitments/StalledLine'
 import { useCommitments } from '@/features/commitments/useCommitments'
 import { useCourses } from '@/features/courses/useCourses'
+import { GymStrip } from '@/features/gym/GymStrip'
 import { useSettings } from '@/features/settings/useSettings'
+import { HeroStrip } from '@/features/wins/HeroStrip'
+import { WinsExpanded } from '@/features/wins/WinsExpanded'
+import { useWins } from '@/features/wins/useWins'
 import { needsAttention } from '@/lib/attention'
 import { denverYmd, shiftYmd } from '@/lib/format'
 import type { Assignment, Commitment } from '@/types/domain'
@@ -20,9 +25,16 @@ import type { Assignment, Commitment } from '@/types/domain'
 const DEFAULT_STALE_DEADLINE_DAYS = 4
 const DEADLINE_WINDOW_DAYS = 7
 
-/** One detail view open at a time. Phase 4's Deadlines window view adds a real stack
- *  (design.md §expanded, "detail on top of detail"); until then a single slot is honest. */
-type OpenDetail = { kind: 'commitment'; id: string } | { kind: 'assignment'; id: string } | null
+/**
+ * An explicit stack, not a single "current" slot (design.md §expanded). An assignment row
+ * inside the Deadlines window pushes on top of it; closing pops back to the window rather
+ * than dumping you on the dashboard.
+ */
+type Detail =
+  | { kind: 'commitment'; id: string }
+  | { kind: 'assignment'; id: string }
+  | { kind: 'deadlines' }
+  | { kind: 'wins' }
 
 function syncLabel(lastSyncedAt: string | null, failed: boolean, now: Date): string | undefined {
   if (failed) return 'sync failed'
@@ -40,28 +52,39 @@ export function DashboardPage() {
   const assignmentsApi = useAssignments()
   const { identityFor } = useCourses()
   const { settings, update: updateSettings } = useSettings()
+  const { wins, refresh: refreshWins } = useWins(now)
 
-  const [open, setOpen] = useState<OpenDetail>(null)
-  const sourceRef = useRef<HTMLElement | null>(null)
+  const [stack, setStack] = useState<Detail[]>([])
+  const [source, setSource] = useState<HTMLElement | null>(null)
 
-  function openCommitment(commitment: Commitment, source: HTMLElement) {
-    sourceRef.current = source
-    setOpen({ kind: 'commitment', id: commitment.id })
-  }
-  function openAssignment(assignment: Assignment, source: HTMLElement) {
-    sourceRef.current = source
-    setOpen({ kind: 'assignment', id: assignment.id })
-  }
-  function closeDetail() {
-    setOpen(null)
-  }
+  const push = useCallback((detail: Detail, from: HTMLElement) => {
+    // Only the bottom of the stack owns the morph origin, so closing always animates
+    // back to the card that started it.
+    setStack((prev) => {
+      if (prev.length === 0) setSource(from)
+      return [...prev, detail]
+    })
+  }, [])
+
+  const pop = useCallback(() => setStack((prev) => prev.slice(0, -1)), [])
+  const closeAll = useCallback(() => setStack([]), [])
+
+  const openCommitment = useCallback(
+    (c: Commitment, from: HTMLElement) => push({ kind: 'commitment', id: c.id }, from),
+    [push],
+  )
+  const openAssignment = useCallback(
+    (a: Assignment, from: HTMLElement) => push({ kind: 'assignment', id: a.id }, from),
+    [push],
+  )
 
   const staleDeadlineDays = settings?.stale_deadline_days ?? DEFAULT_STALE_DEADLINE_DAYS
+  const top = stack[stack.length - 1] ?? null
 
   const openCommitmentObj =
-    open?.kind === 'commitment' ? (commitmentsApi.commitments.find((c) => c.id === open.id) ?? null) : null
+    top?.kind === 'commitment' ? (commitmentsApi.commitments.find((c) => c.id === top.id) ?? null) : null
   const openAssignmentObj =
-    open?.kind === 'assignment' ? (assignmentsApi.assignments.find((a) => a.id === open.id) ?? null) : null
+    top?.kind === 'assignment' ? (assignmentsApi.assignments.find((a) => a.id === top.id) ?? null) : null
 
   const attention = needsAttention(
     assignmentsApi.assignments,
@@ -74,6 +97,23 @@ export function DashboardPage() {
   const windowEnd = shiftYmd(denverYmd(now), DEADLINE_WINDOW_DAYS)
   const deadlinesInWindow = assignmentsApi.assignments.filter((a) => denverYmd(new Date(a.due_at)) <= windowEnd)
 
+  function openDeadlines(from: HTMLElement) {
+    push({ kind: 'deadlines' }, from)
+  }
+  function panelKeyDown(e: KeyboardEvent<HTMLElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      openDeadlines(e.currentTarget)
+    }
+  }
+
+  const ariaLabel =
+    top?.kind === 'deadlines'
+      ? 'Deadlines'
+      : top?.kind === 'wins'
+        ? 'Wins this semester'
+        : (openCommitmentObj?.name ?? openAssignmentObj?.title ?? 'Detail')
+
   return (
     <div>
       <TopBar
@@ -82,6 +122,8 @@ export function DashboardPage() {
       />
       <div className="max-w-[720px] mx-auto px-5 py-8 flex flex-col gap-5">
         <StatusBar assignments={assignmentsApi.assignments} now={now} identityFor={identityFor} />
+
+        <HeroStrip wins={wins} onOpenWins={(from) => push({ kind: 'wins' }, from)} />
 
         <LeftOffCard
           now={now}
@@ -106,11 +148,18 @@ export function DashboardPage() {
           />
         </section>
 
-        <section className="panel" aria-labelledby="dl-title">
+        {/* The panel opens the window view; an individual row opens that assignment.
+            The row handler stops propagation so the two never fire together. */}
+        <section
+          className="panel panel-clickable"
+          role="button"
+          tabIndex={0}
+          aria-label="Deadlines, next 7 days. Open the window view."
+          onClick={(e) => openDeadlines(e.currentTarget)}
+          onKeyDown={panelKeyDown}
+        >
           <div className="panel-head">
-            <h2 className="panel-title" id="dl-title">
-              Deadlines
-            </h2>
+            <h2 className="panel-title">Deadlines</h2>
             <span className="panel-hint">next 7 days</span>
           </div>
           <DeadlineList
@@ -136,15 +185,28 @@ export function DashboardPage() {
           />
         </section>
 
+        <GymStrip now={now} gymDays={settings?.gym_days ?? []} />
+
         <StalledLine commitments={commitmentsApi.commitments} now={now} onOpen={openCommitment} />
       </div>
 
       <ExpandedPanel
-        isOpen={open !== null}
-        onClose={closeDetail}
-        sourceEl={sourceRef.current}
-        ariaLabel={openCommitmentObj?.name ?? openAssignmentObj?.title ?? 'Detail'}
+        isOpen={stack.length > 0}
+        onClose={pop}
+        onCloseAll={closeAll}
+        sourceEl={source}
+        depth={stack.length}
+        ariaLabel={ariaLabel}
       >
+        {top?.kind === 'deadlines' && (
+          <DeadlinesExpanded
+            assignments={assignmentsApi.assignments}
+            now={now}
+            identityFor={identityFor}
+            onOpenAssignment={openAssignment}
+          />
+        )}
+        {top?.kind === 'wins' && <WinsExpanded wins={wins} />}
         {openCommitmentObj && (
           <CommitmentExpanded
             commitment={openCommitmentObj}
@@ -154,8 +216,11 @@ export function DashboardPage() {
             onResume={commitmentsApi.resume}
             onArchive={commitmentsApi.archive}
             onUpdate={commitmentsApi.update}
-            onChanged={commitmentsApi.refresh}
-            onClose={closeDetail}
+            onChanged={() => {
+              commitmentsApi.refresh()
+              refreshWins()
+            }}
+            onClose={pop}
           />
         )}
         {openAssignmentObj && (
@@ -164,10 +229,14 @@ export function DashboardPage() {
             now={now}
             identity={identityFor(openAssignmentObj.course)}
             onLogProgress={assignmentsApi.logProgress}
-            onMarkDone={assignmentsApi.markDone}
+            onMarkDone={async (id) => {
+              const result = await assignmentsApi.markDone(id)
+              refreshWins()
+              return result
+            }}
             onDismiss={assignmentsApi.dismiss}
             onReopen={assignmentsApi.reopen}
-            onClose={closeDetail}
+            onClose={pop}
           />
         )}
       </ExpandedPanel>

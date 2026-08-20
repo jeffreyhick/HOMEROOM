@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { Commitment } from '@/types/domain'
 import { ConfirmInline } from '@/components/ConfirmInline'
 import { useToast } from '@/components/UndoToast'
+import { burstFromRect, finaleOnPanel, prefersReducedMotion } from '@/lib/celebrate'
 import { commitmentTier, weeklyStreak } from '@/lib/attention'
 import { daysAgo, relativeDays } from '@/lib/format'
 import { useCommitmentDetail } from './useCommitmentDetail'
@@ -75,9 +76,34 @@ export function CommitmentExpanded({
     showToast(`${c.name} archived`, undo)
   }
 
-  async function handleToggle(id: string) {
+  /**
+   * Ticking a subtask is the app's main dopamine hit (design.md §celebration), so it
+   * gets all three layers. Un-ticking gets none — undoing something is not an
+   * achievement, and celebrating it would cheapen the real thing.
+   */
+  async function handleToggle(id: string, element?: HTMLElement) {
+    const wasDone = subtasks.find((s) => s.id === id)?.done ?? false
+    // Measure BEFORE the toggle: the re-render replaces this node, and a rect read
+    // afterwards points at a box that no longer exists.
+    const rect = element?.getBoundingClientRect() ?? null
+
     await toggleSubtask(id)
     onChanged()
+    if (wasDone) return
+
+    const nowAllDone = subtasks.length > 0 && subtasks.every((s) => s.done || s.id === id)
+
+    if (!prefersReducedMotion() && element?.isConnected) {
+      element.classList.remove('pop')
+      void element.offsetWidth
+      element.classList.add('pop')
+    }
+    if (rect) burstFromRect(rect)
+
+    if (nowAllDone) {
+      const panel = element?.closest('.xpanel') ?? document.querySelector('.xpanel')
+      if (panel instanceof HTMLElement) finaleOnPanel(panel, 'All steps done!')
+    }
   }
 
   async function handleDelete(id: string) {
@@ -160,13 +186,17 @@ export function CommitmentExpanded({
                 className="check-box"
                 aria-pressed={s.done}
                 aria-label={(s.done ? 'Uncheck ' : 'Check ') + s.title}
-                onClick={() => handleToggle(s.id)}
+                onClick={(e) => handleToggle(s.id, e.currentTarget)}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               </button>
-              <button type="button" className="check-title" onClick={() => handleToggle(s.id)}>
+              <button
+                type="button"
+                className="check-title"
+                onClick={(e) => handleToggle(s.id, e.currentTarget.parentElement?.querySelector('.check-box') as HTMLElement)}
+              >
                 {s.title}
               </button>
               <button type="button" className="check-del" aria-label={`Delete ${s.title}`} onClick={() => handleDelete(s.id)}>

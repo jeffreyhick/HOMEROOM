@@ -420,6 +420,108 @@ update commitments set status = 'active', stalled_at = null where name = 'Rocket
 
 ---
 
+## Phase 4 — Ranking, polish, dogfood
+
+Most of this needs real data on screen, so seed first:
+
+```sql
+insert into assignments (user_id, course, title, due_at, status, last_touched_at, is_exam)
+select s.user_id, v.course, v.title, now() + v.offset, 'upcoming', v.touched, v.exam
+from settings s, (values
+  ('ECEN 2250',      'Missed lab',      interval '-30 hours', null::timestamptz, false),
+  ('Statics',        'Problem set 4',   interval '20 hours',  null,              false),
+  ('Thermodynamics', 'Reading quiz',    interval '3 days',    now(),             false),
+  ('Oceanography',   'Field report',    interval '9 days',    null,              false),
+  ('Thermodynamics', 'Midterm 1',       interval '19 days',   null,              true)
+) as v(course, title, "offset", touched, exam);
+```
+
+### 1. The deadlines window never resizes — the one that was explicitly rejected
+
+Open the Deadlines panel (click the **panel**, not a row). Note the panel's height, then
+click through `Next 24h → 2 weeks → 4 weeks → All → Next 24h`.
+
+**The panel height must not change once.** Fewer items simply leave whitespace, and that
+whitespace is the intended "you're caught up" signal. If it snaps smaller going back to
+24h, the height lock is broken.
+
+The lock is a hidden ghost copy of the `All` list sharing one CSS grid cell with the live
+list, so the body is always as tall as the widest window. Confirm the mechanism in
+DevTools if it ever misbehaves — `.dl-body` should be `display: grid` with both children
+in row 1 / column 1.
+
+### 2. Groups are chronological, overdue is pinned
+
+In the `4 weeks` window: `Overdue` first, then `Today`/`Tomorrow`, then weekdays in date
+order. Two Fridays a fortnight apart must show as **two separate groups** with different
+headers (`Friday` and `Friday · Oct 2`) — never merged, never reversed.
+
+Unit-tested in `deadlineWindows.test.ts`, but worth one look with real data.
+
+### 3. Ranking, hand-computed
+
+With the seed above plus commitments at ratio 2.25 and 1.5 and one on pace, **Needs
+attention** should read: missed lab (overdue, pinned) → the ratio-2.25 commitment →
+problem set 4 → the ratio-1.5 commitment. The on-pace commitment must be **invisible**.
+
+### 4. Status bar and countdowns
+
+- The next exam shows even though it is 19 days out, in neutral (not amber, not red).
+- Move it inside 7 days → amber; inside 2 days → red:
+  ```sql
+  update assignments set due_at = now() + interval '30 hours' where title = 'Midterm 1';
+  ```
+- `Problem set 4` at 20 hours reads **DUE TOMORROW in amber**, not red. Red is reserved
+  for today and overdue — check that on screen, since it is the tier most easily broken.
+
+### 5. Celebration
+
+Open a commitment, add three subtasks, tick one: the checkbox pops and sparks fly from it.
+Tick the last one: the whole panel pulses a green ring and a trophy banner drops in.
+
+Then turn on **Reduce Motion** (System Settings → Accessibility → Display) and repeat.
+Ticks must still work with **no pop, no sparks, no ring** — the banner still appears,
+because it is information rather than decoration.
+
+### 6. Gym
+
+Settings → pick three gym days → they appear as pips on the dashboard. Tap today's pip:
+it sinks inset with a green check, sparks fire, and an undo toast appears. Tap again to
+remove. Then drop that day in Settings — **the check must disappear with it**, not linger
+on a day that is no longer a target. Clear all days → the strip vanishes entirely.
+
+### 7. The win counter rolls exactly once
+
+Reload: the flaps count up once, easing into the final number. Now interact with the page
+— open a panel, tick something, close it. **The counter must not roll again.** Press
+**Replay**: it rolls, and the Wins panel does **not** open (the button stops the click
+from reaching the panel).
+
+### 8. Phone and install
+
+At 375px: detail views are bottom sheets, every tap target is ≥44px, the hero stacks, and
+nothing scrolls sideways. On the deployed URL, Lighthouse should report the app
+installable with no console errors.
+
+The manifest ships **placeholder icons** — a dark rounded square on the surface colour.
+Replace `public/icon-192.png` and `public/icon-512.png` before you care what it looks like
+on a home screen.
+
+### 9. Clean up the seed
+
+```sql
+delete from assignments where title in
+  ('Missed lab','Problem set 4','Reading quiz','Field report','Midterm 1');
+```
+
+### 10. Dogfood week — the actual gate
+
+One full week of real use before school. The rule is **fix friction, add nothing.** Log
+every moment of "I didn't check it / I didn't trust it / updating felt like work" and fix
+only those. Phase 5 is gated on what this week turns up, not on it being built already.
+
+---
+
 ## If something fails
 
 Function logs are the fastest way in:

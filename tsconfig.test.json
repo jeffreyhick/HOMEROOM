@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node", "vitest/globals"],
+    "noEmit": true
+  },
+  // Only the test files. TypeScript follows their imports, which reaches the pure
+  // helpers (ics.ts, attention.ts, digest.ts) but never the Deno handlers — those use
+  // `Deno.*` and `jsr:` specifiers that this toolchain has no types for, and they are
+  // typechecked by `supabase functions deploy` instead.
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "supabase/functions/**/*.test.ts"],
+  "exclude": []
+}
